@@ -1,0 +1,145 @@
+
+
+#console-board .tab-content { 
+    background-color: #444;
+    background-size: 330px;
+    background-repeat: no-repeat;
+    background-position: top right;
+}
+
+
+.device-listitem-activated {
+    background-color: #444;
+    border-left: 5px solid orange;
+}
+
+.device-listitem-occupied {
+    border-left: 5px solid #777;
+}
+
+.device-listitem-offline {
+    opacity: 0.6;
+}
+
+.device-listitem-activated-neox {
+    background-color: #444;
+    border-left: 5px solid #CE93D8;
+}
+.device-listitem-inactivated-neox {
+    border-left: 5px solid #6A1B9A;
+}
+.device-listitem-activated-server {
+    background-color: #444;
+    border-left: 5px solid #90CAF9;
+}
+.device-listitem-inactivated-server {
+    border-left: 5px solid #1565C0;
+}
+
+.device-list-filter-and-search {
+    position: fixed;
+    top: 50px;
+    background-color: #333;
+    z-index: 1;
+    width: 320px;
+    height: 40px;
+    padding: 5px;
+}
+
+#devices-list {
+    background-color: #333;
+}
+
+ul.dropdown-menu a {
+    font-size: 14px;
+    font-family: consolas;
+    color: #DDD;
+}
+
+ul.dropdown-menu a:hover {
+    cursor: pointer;
+    color: orange;
+}
+
+/* 目前默认让所有输入框都使用等宽consolas字体  */
+input[type=text] {
+    font-family: consolas;
+}
+
+a, a:hover, a:focus {
+    color: #DDD;
+}
+a:hover {
+    cursor: pointer;
+}
+
+
+.unread-popo-tips {
+    font-size: 9px;
+    padding: 9px;
+    color: white;
+    background-color: orangered;
+    line-height: 0;
+    border-radius: 30px;
+}
+
+/* for typeahead */
+.twitter-typeahead {
+     width: 97%;
+}
+input.typeahead.tt-query { /* This is optional */
+    width: 100% !important;
+}
+
+
+.tt-query {
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+
+.tt-input, .tt-input.focus {
+  padding-left: 10px !important; 
+  color: #DDD;
+}
+.tt-hint {
+  padding-left: 10px;
+  color: #AAA;
+}
+.tt-highlight {
+  color: orange;
+}
+
+.tt-menu {    /* used to be tt-dropdown-menu in older versions */
+  width: 100%;
+  margin-top: 4px;
+  background-color: rgba(45,45,45,0.65);
+  padding-left: 0;
+  padding-right: 0;
+  -webkit-box-shadow: 0 5px 15px 5px rgba(0,0,0,.5);
+     -moz-box-shadow: 0 5px 15px 5px rgba(0,0,0,.5);
+          box-shadow: 0 5px 15px 5px rgba(0,0,0,.5);
+}
+
+.tt-suggestion {
+  font-family: consolas;
+  padding: 1px 10px;
+  line-height: 18px;
+}
+
+.tt-suggestion.tt-cursor,.tt-suggestion:hover {
+  color: #eee;
+  background-color: rgba(90,90,90,0.8);
+
+}
+
+.tt-suggestion p {
+  margin: 0;
+}
+
+
+.quick-command-button:hover {
+    cursor: pointer;
+}
+
+

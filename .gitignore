@@ -1,0 +1,11 @@
+*.pyc
+*.db
+js-build/
+babel-build/
+log/
+tmp/*
+.idea
+venv
+.*.swp
+*.ipc
+node_modules/

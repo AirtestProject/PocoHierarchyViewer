@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Poco hierarchy viewer</title>
+
+    <link href="static/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="static/material/css/material.css" rel="stylesheet">
+    <link href="static/material/css/ripples.css" rel="stylesheet">
+
+    <script src="static/jquery/jquery-1.10.2.min.js" onload="
+        if (window.process && window.process.versions && window.process.versions.electron) {
+            window.$ = window.jQuery = module.exports;
+        }">
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="static/css/layout.css">
+    <link rel="stylesheet" type="text/css" href="static/css/index.css">
+    <link rel="stylesheet" type="text/css" href="static/css/animation.css">
+  </head>
+  <body>
+    <div id='main'></div>
+
+    <script src="static/bootstrap/js/bootstrap.min.js"></script>
+    <script src="static/material/js/material.min.js"></script>
+    <script src="static/material/js/ripples.min.js"></script>
+
+    <script type="text/javascript" src="lib/js-build/temp/index.js"></script>
+  </body>
+</html>
