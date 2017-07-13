@@ -457,8 +457,8 @@ export class InspectorPanel extends React.Component {
         TreeUtil.traverse(hierarchyTree, node => {
             if (!node.uuid) {
                 node.uuid = uuid.create().toString()  // v4
-                hierarchyTreeNodeMap[node.uuid] = node
             }
+            hierarchyTreeNodeMap[node.uuid] = node
         })
         
         // expand to level 3
