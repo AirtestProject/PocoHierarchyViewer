@@ -8,8 +8,10 @@ let win
 
 function createWindow () {
   // Create the browser window.
-  win = new BrowserWindow({width: 1280, height: 800})
-  win.setMenu(null)
+  win = new BrowserWindow({width: 1280, height: 780})
+  // setTimeout(() => {
+  //   win.setMenu(null)
+  // }, 1500)
 
   // and load the index.html of the app.
   win.loadURL(url.format({

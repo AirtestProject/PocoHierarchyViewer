@@ -15,14 +15,32 @@ import {SPAContainer} from '../base/spa'
 import {InspectorPanel} from '../base/inspector-panel'
 
 
+const path = window.require('path')
+const ApkReader = window.require('node-apk-parser')
 const adb = window.require('adbkit')
 const adbClient = adb.createClient()
 const eventEmitter = new EventEmitter()
 
 const PocoServicePackage = 'com.netease.open.pocoservice'
+const PocoServicePackageTest = 'com.netease.open.pocoservice.test'
 const PocoServiceApk = 'pocoservice-debug.apk'
 const PocoServiceApkTest = 'pocoservice-debug-androidTest.apk'
 
+var checkInstalled = (sn, apkfile, packageName) => {
+    if (!path.isAbsolute(apkfile)) {
+        apkfile = path.join(window.__dirname, apkfile)
+    }
+    let manifest = ApkReader.readFile(apkfile).readManifestSync()
+    return adbClient.shell(sn, `dumpsys package ${packageName}`)
+        .then(adb.util.readAll)
+        .then(output => {
+            let versionCode = output.toString().match(/versionCode=(\d+)/)
+            if (versionCode) {
+                return parseInt(versionCode[1]) >= (manifest.versionCode || 0)
+            }
+            return false
+        })
+}
 
 class InspectorView extends React.Component {
     constructor(props) {
@@ -38,33 +56,43 @@ class InspectorView extends React.Component {
         this.serviceStarted = false
         const sn = this.props.sn
         
+        let testApkShouldReinstall = false
         adbClient.shell(sn, `am force-stop ${PocoServicePackage}`)
-        adbClient.isInstalled(sn, PocoServicePackage)  // 改用versionCode判断
-            // 安装
+            // 安装，如果主apk重装了，那么test apk也要重装
+            .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))            
             .then(installed => {
                 if (!installed) {
+                    testApkShouldReinstall = true
                     return Promise.resolve()
                         .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApk}`, `/data/local/tmp/${PocoServiceApk}`))
                         .then(() => adbClient.shell(sn, `pm install "/data/local/tmp/${PocoServiceApk}"`))
                 }
             })
-            .then(() => {
-                console.log('service installed')
-                return Promise.resolve()
-                    .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApkTest}`, `/data/local/tmp/${PocoServiceApkTest}`))
-                    .then(() => adbClient.shell(sn, `pm install -r "/data/local/tmp/${PocoServiceApkTest}"`))
+            .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApkTest}`, PocoServicePackageTest))
+            .then(installed => {
+                if (!installed || testApkShouldReinstall) {
+                    return Promise.resolve()
+                        .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApkTest}`, `/data/local/tmp/${PocoServiceApkTest}`))
+                        .then(() => adbClient.shell(sn, `pm install -r "/data/local/tmp/${PocoServiceApkTest}"`))
+                }
             })
+
+            // 启动
             .then(() => {
                 console.log('install success')
-
-                // 启动
                 return new Promise(resolve => {
-                    setTimeout(() => {
-                        adbClient.shell(sn, `am instrument -w -e class ${PocoServicePackage}.InstrumentedTestAsLauncher#launch ${PocoServicePackage}.test/android.support.test.runner.AndroidJUnitRunner`)
+                    let startInstrument = () => {
+                        return Promise.resolve()
+                            .then(() => adbClient.shell(sn, `am force-stop ${PocoServicePackage}`))
+                            .then(() => adbClient.shell(sn, `am instrument -w -e class ${PocoServicePackage}.InstrumentedTestAsLauncher#launch ${PocoServicePackage}.test/android.support.test.runner.AndroidJUnitRunner`))
                             .then(adb.util.readAll)
                             .then(output => {
                                 console.log(output.toString())
+                                setTimeout(startInstrument, 1000)  // instrument 启动失败的话，就重新启动
                             })
+                    }
+                    setTimeout(() => {
+                        startInstrument()
                         console.log('poco service is starting')
                         setTimeout(() => {
                             // 还要延迟一下子这个service才启动起来
@@ -72,11 +100,10 @@ class InspectorView extends React.Component {
                         }, 500)
                     }, 500)
                 })
-                
-                
             })
+
+            // forward
             .then(() => {
-                // forward
                 console.log('poco service forward to tcp:10080')
                 return adbClient.forward(sn, 'tcp:10080', 'tcp:10080')
             })
@@ -133,7 +160,7 @@ class InspectorView extends React.Component {
             {toolBarButton('keyboard_backspace', '返回', this.handleBackToDeviceSelect)}
             <span style={{marginLeft: '15px'}}>
                 <Icon icon='phone_android' size={16} />
-                <small>{`${this.props.device.manufacture} (${this.props.sn})`}</small>
+                <small>{`${this.props.device.model} (${this.props.sn})`}</small>
             </span>
         </span>
 
@@ -152,7 +179,7 @@ class DeviceSelection extends React.Component {
     constructor(props) {
         super(props)
         this.state = {
-            devices: {},  // id -> {id: '', type: ''}
+            devices: {},  // id -> {id: '', type: '', model: ''}
             selectedDeviceSerial: null,
         }
         autoBind(this)
@@ -168,9 +195,19 @@ class DeviceSelection extends React.Component {
         adbClient.trackDevices()
             .then(tracker => {
                 tracker.on('add', device => {
-                    let {devices} = this.state
-                    devices[device.id] = device
-                    this.setState({devices})
+                    adbClient.getProperties(device.id)
+                        .then(properties => {
+                            let model = properties['ro.product.model']
+                            let manufacture = properties['ro.product.manufacturer']
+                            return model || manufacturer
+                        })
+                        .then(model => {
+                            let {devices} = this.state
+                            let deviceinfo = devices[device.id]
+                            deviceinfo.model = model
+                            devices[device.id] = deviceinfo
+                            this.setState({devices})
+                        })
                 })
                 tracker.on('remove', device => {
                     let {devices} = this.state
@@ -189,14 +226,28 @@ class DeviceSelection extends React.Component {
         this.setState({selectedDeviceSerial: null})
     }
     componentDidMount() {
-        this.startDeviceTracking()
+        setTimeout(this.startDeviceTracking, 1000)
         adbClient.listDevices()
             .then(devs => {
-                let devices = {}
-                for (let dev of devs) {
-                    devices[dev.id] = dev
-                }
-                this.setState({devices})
+                Promise.all(_.map(devs, dev => {
+                    return adbClient.getProperties(dev.id)
+                        .then(properties => {
+                            let model = properties['ro.product.model']
+                            let manufacture = properties['ro.product.manufacturer']
+                            return [dev, model || manufacturer]
+                        })
+                }))
+                .then(devModels => {
+                    let devices = {}
+                    for (let devmodel of devModels) {
+                        let [dev, model] = devmodel
+                        devices[dev.id] = Object.assign({model}, dev)
+                    }
+                    return devices
+                })
+                .then(devices => {
+                    this.setState({devices})
+                })
             })
 
         eventEmitter.on('back-to-device-selection', this.handleBackToThisPage)
@@ -208,10 +259,10 @@ class DeviceSelection extends React.Component {
 
     render() {
         let devlist = _.map(this.state.devices, dev => {
-            return <IconButton key={dev.id} text={`${dev.id} (${dev.type})`} onClick={this.handleSelectDevice(dev.id)} />
+            return <IconButton key={dev.id} text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={this.handleSelectDevice(dev.id)} />
         })
         return <div>
-            {this.state.selectedDeviceSerial && <InspectorView sn={this.state.selectedDeviceSerial} device={{manufacture: 'SONY'}}/>}
+            {this.state.selectedDeviceSerial && <InspectorView sn={this.state.selectedDeviceSerial} device={this.state.devices[this.state.selectedDeviceSerial]}/>}
             {!this.state.selectedDeviceSerial && <div style={{padding: '15px'}}>
                 <h3>Poco Hierarchy Viewer</h3>
                 {Object.keys(this.state.devices).length === 0 && <div style={{marginTop: '20px', marginBottom: '10px'}} className='text-secondary'>No devices present</div>}

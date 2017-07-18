@@ -134,7 +134,7 @@ class ElementPane extends MouseoverComponent {
     constructor(props) {
         super(props)
         this.state = Object.assign({
-            refreshing: false,
+            refreshing: true,
             coordTipsCoord: [0, 0],
             elementDetected: null,    // 只能选择模式检测出来的节点
         }, this.superState())
@@ -311,6 +311,12 @@ class ElementPane extends MouseoverComponent {
             <div style={{display: 'inline-block', padding: '3px'}}>{' ' + node.name}</div>
         </div>
     }
+    componentWillReceiveProps(nextProps) {
+        this.setState({refreshing: false})
+    }
+    componentDidMount(nextProps) {
+        this.setState({refreshing: false})
+    }
 
     render() {
         let cursor = this.props.hierarchyCursor
@@ -403,6 +409,7 @@ export class InspectorPanel extends React.Component {
         }
         autoBind(this)
 
+        this.ref_elementPane = null
         this.ref_elementPath = null
         this.ref_hierarchyPane = null
         this.ref_attributePane = null
@@ -496,6 +503,7 @@ export class InspectorPanel extends React.Component {
         }
     }
     handleRefreshRequest() {
+        this.ref_elementPane.setState({refreshing: true, screen: ''})
         this.props.onRefreshRequest(this.state.elementPaneWidth)
     }
 
@@ -548,7 +556,7 @@ export class InspectorPanel extends React.Component {
             </div>
             {!!tree && <Treebeard data={tree} onToggle={this.handleSelectElement} style={hierarchyTreeStyle} decorators={myDecorators} />}
         </div>
-        const elementPane = <ElementPane parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={this.props.hierarchyTree} screen={this.props.screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} />
+        const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={this.props.hierarchyTree} screen={this.props.screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} />
         const attributePane = <div ref={r => this.ref_attributePane = r}> 
             {!!cursor && <div style={{padding: '3px'}}>
                 <div>path:  

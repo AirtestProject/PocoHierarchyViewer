@@ -1,5 +1,6 @@
 *.pyc
 *.db
+build/
 js-build/
 babel-build/
 log/
