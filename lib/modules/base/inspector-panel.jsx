@@ -35,6 +35,7 @@ const NodeType2IconName = {
     ScrollView: ['format_list_bulleted', ''],
     Node: ['share', ''],
     ImageView: ['mdi-image-image', 'lightpink'],
+    View: ['view_agenda', ''],
     Sprite: ['mdi-image-image', 'lightpink'],
     Text: ['mdi-content-text-format', 'white'],
     TextView: ['mdi-content-text-format', 'white'],
@@ -537,7 +538,7 @@ export class InspectorPanel extends React.Component {
         }
 
         const toolBarButton = (icon, hint, onClick, btnClass='-') => {
-            return <IconButton onClick={onClick} btnClass={btnClass} iconStyle={{fontSize: '20px'}} btnStyle={{marginRight: '4px'}} icon={icon} hint={hint} />
+            return <IconButton onClick={onClick} btnClass={btnClass} iconStyle={{fontSize: '20px'}} btnStyle={{marginRight: '4px'}} icon={icon} hint={hint} hintPlacement='bottom' />
         }
 
         // 3 panes
@@ -561,6 +562,7 @@ export class InspectorPanel extends React.Component {
         </div>
         return <div>
             <div style={{height: '25px', padding: '2px 10px'}}>
+                {this.props.customToolbar}
                 {toolBarButton('border_outer', '选择', this.handleToggleAutoDetectingMode, this.state.elementSelecting ? 'color-primary' : '-')}
                 {toolBarButton('mdi-navigation-refresh', '刷新', this.handleRefreshRequest)}
                 {false && !!cursor && toolBarButton('mdi-maps-my-location', '点击测试(尚未完成)', this.sendClickEvent)}
