@@ -35,6 +35,7 @@ const NodeType2IconName = {
     ScrollView: ['format_list_bulleted', ''],
     Node: ['share', ''],
     ImageView: ['mdi-image-image', 'lightpink'],
+    Image: ['mdi-image-image', 'lightpink'],
     View: ['view_agenda', ''],
     Sprite: ['mdi-image-image', 'lightpink'],
     Text: ['mdi-content-text-format', 'white'],
@@ -146,7 +147,6 @@ class ElementPane extends MouseoverComponent {
         this.ref_imgMask = null
     }
 
-
     _findOverlayedNode(offsetX, offsetY) {
         let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
         let matchedNodes = []
@@ -171,7 +171,7 @@ class ElementPane extends MouseoverComponent {
         this.setState({elementDetected: matchedNodes[0] || null})
     }
     handleAutoDetectingElement(evt) {
-        if (!this.props.elementSelecting) {
+        if (!this.props.hierarchyTree) {
             return
         }
         evt.persist()
@@ -180,7 +180,7 @@ class ElementPane extends MouseoverComponent {
         this._findOverlayedNode(offsetX, offsetY)
     }
     handleSelectAutoDetectedElment(evt) {
-        if (!this.props.elementSelecting || !this.state.elementDetected) {
+        if (!this.state.elementDetected) {
             return
         }
         this.props.parent.handleSelectElement(this.state.elementDetected, true)
@@ -188,11 +188,8 @@ class ElementPane extends MouseoverComponent {
         this.setState({elementDetected: null})
     }
     handleCancelAutoDetectingElement(evt) {
-        if (this.props.elementSelecting) {
-            this.props.parent.setState({elementSelecting: false})
-            evt.stopPropagation()
-            evt.preventDefault()
-        }
+        evt.stopPropagation()
+        evt.preventDefault()
     }
     handleClearAutuDetectingElementMask() {
         this.setState({elementDetected: null, mouseover: false})
@@ -235,14 +232,7 @@ class ElementPane extends MouseoverComponent {
         })
         return <div style={Object.assign({position: 'absolute', border: `1px solid ${borderColor}`, zIndex: 100, backgroundColor: bgColor}, bound)}></div>
     }
-    genElementMaskByMargin(t, r, b, l, sx, sy, scale, rw, rh, bgColor='rgba(255,244,0,0.2)', borderColor='pink') {
-        let bound = this.convertBoundToRenderPos(t, r, b, l, sx, sy, scale, rw, rh)
-        _.forEach(bound, (val, key) => {
-            bound[key] = val + 'px'
-        })
-        let style = {position: 'absolute', border: `2px dashed ${borderColor}`, zIndex: 90, backgroundColor: bgColor}
-        return <div style={Object.assign(style, bound)} ></div>
-    }
+
     genCoordTips() {
         const tipsDisplayOffset = 20
         let [tipsX, tipsY] = this.state.coordTipsCoord 
@@ -315,11 +305,15 @@ class ElementPane extends MouseoverComponent {
         this.setState({refreshing: false})
     }
     componentDidMount(nextProps) {
-        this.setState({refreshing: false})
+        if (this.props.screen) {
+            this.setState({refreshing: false})
+        }
     }
 
     render() {
         let cursor = this.props.hierarchyCursor
+        
+        // square mask
         let mask = null
         let anchor = null
         if (cursor && this.ref_imgMask) {
@@ -329,38 +323,28 @@ class ElementPane extends MouseoverComponent {
             let anchorPos = {left: pos[0] * scaleFactor - 1 + 'px', top: pos[1] * scaleFactor - 1 + 'px'}
             anchor = <div style={Object.assign({position: 'absolute', border: '2px solid orangered', zIndex: 101, width: '3px', height: '3px'}, anchorPos)}></div>
         }
-
-        let marginMask = null
-        if (cursor && this.ref_imgMask && cursor.payload.margin) {
-            let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
-            let [top, right, bottom, left] = cursor.payload.margin
-            let [sx, sy] = cursor.payload.scale
-            let rw = this.ref_imgMask.clientWidth
-            let rh = this.props.screenHeight * scaleFactor  // 通过屏幕比例自动算出高，因为这个imgMask的height会随着splite pane而变化
-            marginMask = this.genElementMaskByMargin(top, right, bottom, left, sx, sy, scaleFactor, rw, rh, 'rgba(0,128,255,0.2)')
-        }
-
-        let dynamicMask = null
-        if (this.state.elementDetected && this.ref_imgMask) {
+        let maskForSelecting = null
+        if (this.ref_imgMask && this.state.elementDetected) {
             let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
             let {pos, size, anchorPoint} = this.state.elementDetected.payload
-            dynamicMask = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor, 'rgba(0, 128, 255, 0.3)')
+            maskForSelecting = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor, 'rgba(0, 128, 255, 0.3)')
         }
 
+        // type and name info tips
         let nodeInfoTips = null
-        if (this.ref_imgMask) {
+        if (this.ref_imgMask && cursor) {
             let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
-            if (this.state.elementDetected && this.ref_imgMask) {
-                let {pos, size, anchorPoint} = this.state.elementDetected.payload
-                let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
-                nodeInfoTips = this.genNodeInfoTips(this.state.elementDetected, nodeBounds)
-            } else if (cursor && this.ref_imgMask) {
-                let {pos, size, anchorPoint} = cursor.payload
-                let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
-                nodeInfoTips = this.genNodeInfoTips(cursor, nodeBounds, 200000)
-            }
+            let {pos, size, anchorPoint} = cursor.payload
+            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
+            nodeInfoTips = this.genNodeInfoTips(cursor, nodeBounds, 200000)
         }
-
+        let nodeInfoTipsForSelecting = null
+        if (this.ref_imgMask && this.state.elementDetected) {
+            let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+            let {pos, size, anchorPoint} = this.state.elementDetected.payload
+            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
+            nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, nodeBounds)
+        }
 
         return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
             <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 99999}} 
@@ -373,11 +357,12 @@ class ElementPane extends MouseoverComponent {
             </div>
             {this.state.refreshing && <div style={{position: 'absolute', left: 0, right: 0, top: '40%', height: '90px', lineHeight: '90px', textAlign: 'center', fontSize: '26px', zIndex: 10000, backgroundColor: 'rgba(0,0,0,0.5)'}}>处理中...</div>}
             <div ref={r => this.ref_imgMask = r} style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
+                {this.state.mouseover && nodeInfoTipsForSelecting}
+                {this.state.mouseover && this.genCoordTips()}
+                {this.state.mouseover && maskForSelecting}
                 {nodeInfoTips}
-                {this.state.mouseover && this.props.elementSelecting && this.genCoordTips()}
-                {this.props.elementSelecting && dynamicMask}
-                {!dynamicMask && !this.state.elementDetected && mask}
-                {!dynamicMask && !this.state.elementDetected && anchor}
+                {mask}
+                {anchor}
             </div>
             <img ref='img' src={this.props.screen} style={{width: '100%'}} />
         </div>
@@ -386,7 +371,6 @@ class ElementPane extends MouseoverComponent {
 
 ElementPane.propTypes = {
     target: React.PropTypes.object,
-    elementSelecting: React.PropTypes.bool,
     hierarchyCursor: React.PropTypes.object,
     hierarchyTree: React.PropTypes.object,
     screen: React.PropTypes.string,
@@ -399,13 +383,12 @@ export class InspectorPanel extends React.Component {
         super(props)
         this.state = {
             // the game client's real resolutions
-            elementSelecting: false,  // 正在使用智能选择模式
             elementPaneWidth: 720,
 
             hierarchyTreeNodeMap: {},  // node.uuid -> node
             hierarchyCursor: null,
             hierarchyTreeSearchContent: '',
-            hierarchyShowInvisibleNode: false,
+            hierarchyShowInvisibleNode: false,  // 保留，暂未使用
         }
         autoBind(this)
 
@@ -430,7 +413,7 @@ export class InspectorPanel extends React.Component {
         if (originNode.children) {
             originNode.toggled = !originNode.toggled
         }
-        this.setState({hierarchyCursor: node, elementSelecting: false})
+        this.setState({hierarchyCursor: node})
     }
     handleHierarchyUpdate(hierarchyTree) {
         let hierarchyTreeNodeMap = {}
@@ -474,7 +457,7 @@ export class InspectorPanel extends React.Component {
 
         this.setState({
             hierarchyTreeNodeMap,  
-            hierarchyCursor: null, elementSelecting: false, 
+            hierarchyCursor: null,
         })
     }
     handleCopyPath() {
@@ -482,6 +465,7 @@ export class InspectorPanel extends React.Component {
     }
 
     sendClickEvent() {
+        // 保留，暂未完成
         let uri = this.resourceManager.get('/addon/inspector/rpc/uri')
         if (uri && this.state.hierarchyCursor) {
             let remoteObj = this.rpc.getObject(uri)
@@ -493,14 +477,6 @@ export class InspectorPanel extends React.Component {
     }
     handleMainSplitePaneResized(size) {
         this.setState({elementPaneWidth: size})
-    }
-    handleToggleAutoDetectingMode() {
-        let detecting = this.state.elementSelecting
-        this.setState({elementSelecting: !detecting})
-        if (detecting) {
-            // 关闭auto detecting时，要把detected element清除掉
-            this.setState({elementDetected: null})
-        }
     }
     handleRefreshRequest() {
         this.ref_elementPane.setState({refreshing: true, screen: ''})
@@ -571,7 +547,6 @@ export class InspectorPanel extends React.Component {
         return <div>
             <div style={{height: '25px', padding: '2px 10px'}}>
                 {this.props.customToolbar}
-                {toolBarButton('border_outer', '选择', this.handleToggleAutoDetectingMode, this.state.elementSelecting ? 'color-primary' : '-')}
                 {toolBarButton('mdi-navigation-refresh', '刷新', this.handleRefreshRequest)}
                 {false && !!cursor && toolBarButton('mdi-maps-my-location', '点击测试(尚未完成)', this.sendClickEvent)}
                 {false && toolBarButton(this.state.hierarchyShowInvisibleNode ? 'mdi-action-visibility': 'mdi-action-visibility-off', '显示invisible节点', this.toggleShowInvisibileNode, this.state.hierarchyShowInvisibleNode ? 'color-primary' : '-')}
