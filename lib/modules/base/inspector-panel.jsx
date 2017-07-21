@@ -145,10 +145,12 @@ class ElementPane extends MouseoverComponent {
         this.ref_coordTips = null
         this.ref_nodeInfoTips = null
         this.ref_imgMask = null
+        this.ref_img = null
     }
 
     _findOverlayedNode(offsetX, offsetY) {
-        let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+        let scaleFactorX = this.ref_img.clientWidth
+        let scaleFactorY = this.ref_img.clientHeight
         let matchedNodes = []
         TreeUtil.traverse(this.props.hierarchyTree, node => {
             let {type, visible, parentVisible, pos, size, anchorPoint, scale} = node.payload
@@ -157,7 +159,7 @@ class ElementPane extends MouseoverComponent {
                     let [x, y] = pos
                     let [w, h] = size
                     let [ax, ay] = anchorPoint
-                    let {left, top, width, height} = this.convertNodePosToRenderPos(x, y, w, h, ax, ay, scaleFactor)
+                    let {left, top, width, height} = this.convertNodePosToRenderPos(x, y, w, h, ax, ay, scaleFactorX, scaleFactorY)
                     if (offsetX >= left && offsetX <= left + width && offsetY >= top && offsetY <= top + height) {
                         matchedNodes.push(node)
                     }
@@ -195,38 +197,23 @@ class ElementPane extends MouseoverComponent {
         this.setState({elementDetected: null, mouseover: false})
     }
 
-    convertNodePosToRenderPos(x, y, w, h, ax, ay, scale) {
-        // scale: scale factor from device screen to browser screen
+    convertNodePosToRenderPos(x, y, w, h, ax, ay, _sx, _sy) {
+        // _sx: scale factor from [0, 1] to browser screen
         // 不需要再求一次宽和高的缩放了，因为在获取节点属性时已经计算到最终宽高值了
-        x *= scale
-        y *= scale
-        w *= scale
-        h *= scale
+        x *= _sx
+        y *= _sy
+        w *= _sx
+        h *= _sy
         let bound = {
             left: (x - w * ax), 
-            top: (y - h * (1 - ay)),
+            top: (y - h * ay),
             width: w,
             height: h,
         }
         return bound
     }
-    convertBoundToRenderPos(t, r, b, l, sx, sy, scale, renderW, renderH) {
-        t *= scale
-        r *= scale
-        b *= scale
-        l *= scale
-        let targetW = renderW - l - r
-        let targetH = renderH - t - b
-        let x = targetW * (1 - sx) / 2 + l 
-        let y = targetH * (1 - sy) / 2 + t
-        let w = targetW * sx
-        let h = targetH * sy
-        return {
-            left: x, top: y, width: w, height: h,
-        }
-    }
-    genSelectedElementMask(x, y, w, h, ax, ay, scale, bgColor='rgba(255,244,0,0.2)', borderColor='lightgreen') {
-        let bound = this.convertNodePosToRenderPos(x, y, w, h, ax, ay, scale)
+    genSelectedElementMask(x, y, w, h, ax, ay, sx, sy, bgColor='rgba(255,244,0,0.2)', borderColor='lightgreen') {
+        let bound = this.convertNodePosToRenderPos(x, y, w, h, ax, ay, sx, sy)
         _.forEach(bound, (val, key) => {
             bound[key] = val + 'px'
         })
@@ -236,7 +223,8 @@ class ElementPane extends MouseoverComponent {
     genCoordTips() {
         const tipsDisplayOffset = 20
         let [tipsX, tipsY] = this.state.coordTipsCoord 
-        let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+        let scaleFactorX = this.ref_img.clientWidth
+        let scaleFactorY = this.ref_img.clientHeight
         let bounds = {left: tipsX + tipsDisplayOffset + 'px', top: tipsY + tipsDisplayOffset + 'px'}
         let style = {position: 'absolute', zIndex: 20001, whiteSpace: 'nowrap', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.4)', padding: '2px'}
         if (this.ref_coordTips) {
@@ -254,7 +242,7 @@ class ElementPane extends MouseoverComponent {
                 delete bounds.top
             }
         }
-        let coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`${parseInt(tipsX / scaleFactor)}, ${parseInt(tipsY / scaleFactor)}`}</div>
+        let coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`${parseInt(tipsX / scaleFactorX * this.props.screenWidth)}, ${parseInt(tipsY / scaleFactorY * this.props.screenHeight)}`}</div>
         return coordTips
     }
     genNodeInfoTips(node, nodeBounds=null, zIndex=10001) {
@@ -317,33 +305,37 @@ class ElementPane extends MouseoverComponent {
         let mask = null
         let anchor = null
         if (cursor && this.ref_imgMask) {
-            let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+            let scaleFactorX = this.ref_img.clientWidth
+            let scaleFactorY = this.ref_img.clientHeight
             let {pos, size, anchorPoint} = cursor.payload
-            mask = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
-            let anchorPos = {left: pos[0] * scaleFactor - 1 + 'px', top: pos[1] * scaleFactor - 1 + 'px'}
+            mask = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
+            let anchorPos = {left: pos[0] * scaleFactorX - 1 + 'px', top: pos[1] * scaleFactorY - 1 + 'px'}  // 这点往左上角偏移一个像素
             anchor = <div style={Object.assign({position: 'absolute', border: '2px solid orangered', zIndex: 101, width: '3px', height: '3px'}, anchorPos)}></div>
         }
         let maskForSelecting = null
         if (this.ref_imgMask && this.state.elementDetected) {
-            let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+            let scaleFactorX = this.ref_img.clientWidth
+            let scaleFactorY = this.ref_img.clientHeight
             let {pos, size, anchorPoint} = this.state.elementDetected.payload
-            maskForSelecting = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor, 'rgba(0, 128, 255, 0.3)')
+            maskForSelecting = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY, 'rgba(0, 128, 255, 0.3)')
         }
 
         // type and name info tips
         let nodeInfoTips = null
         if (this.ref_imgMask && cursor) {
-            let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+            let scaleFactorX = this.ref_img.clientWidth
+            let scaleFactorY = this.ref_img.clientHeight
             let {pos, size, anchorPoint} = cursor.payload
-            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
+            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
             nodeInfoTips = this.genNodeInfoTips(cursor, nodeBounds, 200000)
         }
         let nodeInfoTipsForSelecting = null
         if (this.ref_imgMask && this.state.elementDetected) {
-            let scaleFactor = this.ref_imgMask.clientWidth / this.props.screenWidth
+            let scaleFactorX = this.ref_img.clientWidth
+            let scaleFactorY = this.ref_img.clientHeight
             let {pos, size, anchorPoint} = this.state.elementDetected.payload
-            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactor)
-            nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, nodeBounds)
+            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
+            nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, nodeBounds, 10000)
         }
 
         return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
@@ -357,14 +349,14 @@ class ElementPane extends MouseoverComponent {
             </div>
             {this.state.refreshing && <div style={{position: 'absolute', left: 0, right: 0, top: '40%', height: '90px', lineHeight: '90px', textAlign: 'center', fontSize: '26px', zIndex: 10000, backgroundColor: 'rgba(0,0,0,0.5)'}}>处理中...</div>}
             <div ref={r => this.ref_imgMask = r} style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
-                {this.state.mouseover && nodeInfoTipsForSelecting}
-                {this.state.mouseover && this.genCoordTips()}
-                {this.state.mouseover && maskForSelecting}
                 {nodeInfoTips}
                 {mask}
                 {anchor}
+                {this.state.mouseover && nodeInfoTipsForSelecting}
+                {this.state.mouseover && this.genCoordTips()}
+                {this.state.mouseover && maskForSelecting}
             </div>
-            <img ref='img' src={this.props.screen} style={{width: '100%'}} />
+            <img ref={r => this.ref_img = r} src={this.props.screen} style={{width: '100%'}} />
         </div>
     }
 }
