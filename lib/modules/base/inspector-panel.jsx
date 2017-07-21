@@ -144,6 +144,7 @@ class ElementPane extends MouseoverComponent {
 
         this.ref_coordTips = null
         this.ref_nodeInfoTips = null
+        this.ref_nodeInfoTips_float = null
         this.ref_imgMask = null
         this.ref_img = null
     }
@@ -245,7 +246,7 @@ class ElementPane extends MouseoverComponent {
         let coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`${parseInt(tipsX / scaleFactorX * this.props.screenWidth)}, ${parseInt(tipsY / scaleFactorY * this.props.screenHeight)}`}</div>
         return coordTips
     }
-    genNodeInfoTips(node, nodeBounds=null, zIndex=10001) {
+    genNodeInfoTips(node, ref, nodeBounds=null, zIndex=10001) {
         let typename = node.payload.type
         let style = {position: 'absolute', zIndex: zIndex, whiteSpace: 'nowrap', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.7)'}
         let [icon, color] = ['', '']
@@ -255,9 +256,9 @@ class ElementPane extends MouseoverComponent {
         }
         if (nodeBounds) {
             let bound = {left: nodeBounds.left, top: nodeBounds.top + nodeBounds.height + 1}
-            if (this.ref_nodeInfoTips) {
-                let nodeInfoTipsWidth = this.ref_nodeInfoTips.clientWidth
-                let nodeInfoTipsHeight = this.ref_nodeInfoTips.clientHeight
+            if (this[ref]) {
+                let nodeInfoTipsWidth = this[ref].clientWidth
+                let nodeInfoTipsHeight = this[ref].clientHeight
                 if (bound.top > this.ref_imgMask.clientHeight - nodeInfoTipsHeight) {
                     if (nodeBounds.height < this.ref_imgMask.clientHeight / 2) {
                         // 处于底部但又不太高的元素
@@ -281,7 +282,7 @@ class ElementPane extends MouseoverComponent {
             })
             style = Object.assign(style, bound)
         }
-        return <div ref={r => this.ref_nodeInfoTips = r} style={style}>
+        return <div ref={r => this[ref] = r} style={style}>
             <div style={{display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.25)', padding: '3px'}}>
                 <Icon icon={icon} color={color} size={16} />
                 <span style={{fontFamily: 'consolas', display: 'inline-block'}}>{' ' + typename}</span>
@@ -327,7 +328,7 @@ class ElementPane extends MouseoverComponent {
             let scaleFactorY = this.ref_img.clientHeight
             let {pos, size, anchorPoint} = cursor.payload
             let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
-            nodeInfoTips = this.genNodeInfoTips(cursor, nodeBounds, 200000)
+            nodeInfoTips = this.genNodeInfoTips(cursor, 'ref_nodeInfoTips', nodeBounds, 200000)
         }
         let nodeInfoTipsForSelecting = null
         if (this.ref_imgMask && this.state.elementDetected) {
@@ -335,7 +336,7 @@ class ElementPane extends MouseoverComponent {
             let scaleFactorY = this.ref_img.clientHeight
             let {pos, size, anchorPoint} = this.state.elementDetected.payload
             let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
-            nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, nodeBounds, 10000)
+            nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, 'ref_nodeInfoTips_float', nodeBounds, 10000)
         }
 
         return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
