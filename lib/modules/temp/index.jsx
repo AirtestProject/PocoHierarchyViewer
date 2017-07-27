@@ -15,6 +15,7 @@ import {SPAContainer} from '../base/spa'
 import {InspectorPanel} from '../base/inspector-panel'
 
 
+const Promise = window.require('bluebird')
 const path = window.require('path')
 const ApkReader = window.require('node-apk-parser')
 const adb = window.require('adbkit')
@@ -42,6 +43,22 @@ var checkInstalled = (sn, apkfile, packageName) => {
         })
 }
 
+var ensureInstalled = (sn, apkfile, packageName) => {
+    return new Promise(resolve => {
+        checkInstalled(sn, apkfile, packageName)
+            .then(installed => {
+                if (installed) {
+                    resolve()
+                } else {
+                    setTimeout(() => {
+                        ensureInstalled
+                        resolve(ensureInstalled(sn, apkfile, packageName))
+                    }, 500)
+                }
+            })
+    })
+}
+
 class InspectorView extends React.Component {
     constructor(props) {
         super(props)
@@ -53,6 +70,8 @@ class InspectorView extends React.Component {
         }
         autoBind(this)
 
+        this._refreshTimer = null
+        this._restartInstrumentTimer = null
         this.serviceStarted = false
         const sn = this.props.sn
         
@@ -62,10 +81,17 @@ class InspectorView extends React.Component {
             .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))            
             .then(installed => {
                 if (!installed) {
+                    console.log('poco service not installed.')
                     testApkShouldReinstall = true
                     return Promise.resolve()
                         .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApk}`, `/data/local/tmp/${PocoServiceApk}`))
+                        .delay(1000)
                         .then(() => adbClient.shell(sn, `pm install "/data/local/tmp/${PocoServiceApk}"`))
+                        .then(() => ensureInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))
+                        .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))
+                        .then(installed => {
+                            console.log('poco service installed?', installed)
+                        })
                 }
             })
             .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApkTest}`, PocoServicePackageTest))
@@ -73,7 +99,9 @@ class InspectorView extends React.Component {
                 if (!installed || testApkShouldReinstall) {
                     return Promise.resolve()
                         .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApkTest}`, `/data/local/tmp/${PocoServiceApkTest}`))
+                        .delay(500)
                         .then(() => adbClient.shell(sn, `pm install -r "/data/local/tmp/${PocoServiceApkTest}"`))
+                        .then(() => ensureInstalled(sn, `lib/apk/${PocoServiceApkTest}`, PocoServicePackageTest))
                 }
             })
 
@@ -88,7 +116,7 @@ class InspectorView extends React.Component {
                             .then(adb.util.readAll)
                             .then(output => {
                                 console.log(output.toString())
-                                setTimeout(startInstrument, 1000)  // instrument 启动失败的话，就重新启动
+                                this._restartInstrumentTimer = setTimeout(startInstrument, 1500)  // instrument 启动失败的话，就重新启动
                             })
                     }
                     setTimeout(() => {
@@ -135,6 +163,8 @@ class InspectorView extends React.Component {
     }
     handleBackToDeviceSelect() {
         eventEmitter.emit('back-to-device-selection')
+        clearTimeout(this._restartInstrumentTimer)
+        clearTimeout(this._refreshTimer)
     }
     componentDidMount() {
         let tryToRefresh = () => {
@@ -147,11 +177,12 @@ class InspectorView extends React.Component {
             this.refresh(1920)
                 .catch(err => {
                     console.log('service is still starting, try again later.', err)
-                    setTimeout(tryToRefresh, 500)
+                    this._refreshTimer = setTimeout(tryToRefresh, 500)
                 })
         }
         tryToRefresh()
     }
+
     render() {
         const toolBarButton = (icon, hint, onClick, btnClass='-') => {
             return <IconButton onClick={onClick} btnClass={btnClass} iconStyle={{fontSize: '20px'}} btnStyle={{marginRight: '4px'}} icon={icon} hint={hint} hintPlacement='bottom' />
