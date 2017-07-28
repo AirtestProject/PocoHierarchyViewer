@@ -22,7 +22,7 @@ import {Icon} from '../util/icon'
 
 // 节点类型优先级，越后面优先级越高
 const NodeTypePrioirties = ['Sprite', 'ImageView', 'Label', 'RichText', 'TextField', 'Text', 'Slider', 'CheckBox', 'Button']
-const IgnoredCCTypes = ['Node', 'Layer', 'Layout', 'LayerColor', 'Scene', 'Bone', 'Armature', 'ParticleSystemQuad', 'PaletteSprite', 'AvatarLayer', 'AvatarGroupLayer']
+const IgnoredCCTypes = ['Node', 'Layer', 'Layout', 'RelativeLayout', 'LinearLayout', 'LayerColor', 'Scene', 'Bone', 'Armature', 'ParticleSystemQuad', 'PaletteSprite', 'AvatarLayer', 'AvatarGroupLayer']
 const NodeType2IconName = {
     Layer: ['mdi-maps-layers', ''],
     LayerColor: ['mdi-maps-layers', ''],
@@ -58,9 +58,15 @@ const NodeType2IconName = {
     Slider: ['adjust', 'yellowgreen'],
 }
 
-let getNodeIcon = type => {
+
+let transformType = type => {
     let payloadType = type.split('.')
     payloadType = payloadType[payloadType.length - 1]
+    return payloadType
+}
+
+let getNodeIcon = type => {
+    let payloadType = transformType(type)
     let nodeIcon = NodeType2IconName[payloadType]
     return nodeIcon
 }
@@ -131,6 +137,28 @@ const hierarchyTreeMatcher = (searchContent, node) => {
 }
 
 
+// integer elements only
+const arrayCompare = (a, b) => {
+    let i = 0;
+    let j = 0;
+    while(i < a.length && j < b.length) {
+        if (a[i] === b[j]) {
+            i++;
+            j++;
+            continue
+        }
+        return a[i] - b[j]
+    }
+    if (a.length < b.length) {
+        return -1
+    } else if (a.length > b.length) {
+        return 1
+    } else {
+        return a[i - 1] - b[j - 1]
+    }
+}
+
+
 class ElementPane extends MouseoverComponent {
     constructor(props) {
         super(props)
@@ -155,6 +183,7 @@ class ElementPane extends MouseoverComponent {
         let matchedNodes = []
         TreeUtil.traverse(this.props.hierarchyTree, node => {
             let {type, visible, parentVisible, pos, size, anchorPoint, scale} = node.payload
+            type = transformType(type)
             if (IgnoredCCTypes.indexOf(type) < 0) {
                 if (visible && parentVisible !== false) {
                     let [x, y] = pos
@@ -169,7 +198,7 @@ class ElementPane extends MouseoverComponent {
         })
         
         matchedNodes.sort((a, b) => {
-            return -a.payload.depthStr.localeCompare(b.payload.depthStr)
+            return -arrayCompare(a.payload.depthLst, b.payload.depthLst)
         })
         this.setState({elementDetected: matchedNodes[0] || null})
     }
@@ -444,6 +473,20 @@ export class InspectorPanel extends React.Component {
             }
             hierarchyTreeNodeMap[node.uuid] = node
         })
+
+        // generate depthLst
+        if (hierarchyTree.payload.depthStr === undefined) {
+            TreeUtil.traverse(hierarchyTree, (node, childIndex) => {
+                let parentDepth = [] 
+                if (node.parent) {
+                    parentDepth = node.parent.payload.depthLst || []
+                }
+                let {global, local} = node.payload.zOrders
+                let area = node.payload.size[0] * node.payload.size[1]
+                let depthLst = parentDepth.concat([global, 1 - area, local, childIndex])
+                node.payload.depthLst = depthLst
+            })
+        }
         
         // expand to level 3
         TreeUtil.expand(hierarchyTree, 3)

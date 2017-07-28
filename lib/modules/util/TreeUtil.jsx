@@ -95,12 +95,12 @@ TreeUtil.removeFromParent = (node) => {
     parent.children.splice(parent.children.indexOf(node), 1);
 };
 
-TreeUtil.traverse = (root, func) => {
-    func(root)
+TreeUtil.traverse = (root, func, childIndex=0) => {
+    func(root, parseInt(childIndex))
     if (root.children) {
         for (let c in root.children) {
             let child = root.children[c]
-            TreeUtil.traverse(child, func)
+            TreeUtil.traverse(child, func, c)
         }
     }
 }
@@ -126,4 +126,3 @@ TreeUtil.expandNode = node => {
 }
 
 module.exports = TreeUtil
-
