@@ -290,7 +290,7 @@ class DeviceSelection extends React.Component {
 
     render() {
         let devlist = _.map(this.state.devices, dev => {
-            return <IconButton key={dev.id} text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={this.handleSelectDevice(dev.id)} />
+            return <div key={dev.id}><IconButton text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={this.handleSelectDevice(dev.id)} /></div>
         })
         return <div>
             {this.state.selectedDeviceSerial && <InspectorView sn={this.state.selectedDeviceSerial} device={this.state.devices[this.state.selectedDeviceSerial]}/>}
