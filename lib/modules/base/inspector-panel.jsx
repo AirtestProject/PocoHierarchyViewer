@@ -1,5 +1,4 @@
 
-const $ = require('jquery')
 const _ = require('lodash')
 const uuid = require('uuid-js')
 const React = require('react')
@@ -174,12 +173,11 @@ class ElementPane extends MouseoverComponent {
         this.ref_nodeInfoTips = null
         this.ref_nodeInfoTips_float = null
         this.ref_imgMask = null
-        this.ref_img = null
     }
 
     _findOverlayedNode(offsetX, offsetY) {
-        let scaleFactorX = this.ref_img.clientWidth
-        let scaleFactorY = this.ref_img.clientHeight
+        let scaleFactorX = this.props.paneWidth
+        let scaleFactorY = this.props.paneHeight
         let matchedNodes = []
         TreeUtil.traverse(this.props.hierarchyTree, node => {
             let {type, visible, parentVisible, pos, size, anchorPoint, scale} = node.payload
@@ -253,8 +251,8 @@ class ElementPane extends MouseoverComponent {
     genCoordTips() {
         const tipsDisplayOffset = 20
         let [tipsX, tipsY] = this.state.coordTipsCoord 
-        let scaleFactorX = this.ref_img.clientWidth
-        let scaleFactorY = this.ref_img.clientHeight
+        let scaleFactorX = this.props.paneWidth
+        let scaleFactorY = this.props.paneHeight
         let bounds = {left: tipsX + tipsDisplayOffset + 'px', top: tipsY + tipsDisplayOffset + 'px'}
         let style = {position: 'absolute', zIndex: 20001, whiteSpace: 'nowrap', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.4)', padding: '2px'}
         if (this.ref_coordTips) {
@@ -335,8 +333,8 @@ class ElementPane extends MouseoverComponent {
         let mask = null
         let anchor = null
         if (cursor && this.ref_imgMask) {
-            let scaleFactorX = this.ref_img.clientWidth
-            let scaleFactorY = this.ref_img.clientHeight
+            let scaleFactorX = this.props.paneWidth
+            let scaleFactorY = this.props.paneHeight
             let {pos, size, anchorPoint} = cursor.payload
             mask = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
             let anchorPos = {left: pos[0] * scaleFactorX - 1 + 'px', top: pos[1] * scaleFactorY - 1 + 'px'}  // 这点往左上角偏移一个像素
@@ -344,8 +342,8 @@ class ElementPane extends MouseoverComponent {
         }
         let maskForSelecting = null
         if (this.ref_imgMask && this.state.elementDetected) {
-            let scaleFactorX = this.ref_img.clientWidth
-            let scaleFactorY = this.ref_img.clientHeight
+            let scaleFactorX = this.props.paneWidth
+            let scaleFactorY = this.props.paneHeight
             let {pos, size, anchorPoint} = this.state.elementDetected.payload
             maskForSelecting = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY, 'rgba(0, 128, 255, 0.3)')
         }
@@ -353,16 +351,16 @@ class ElementPane extends MouseoverComponent {
         // type and name info tips
         let nodeInfoTips = null
         if (this.ref_imgMask && cursor) {
-            let scaleFactorX = this.ref_img.clientWidth
-            let scaleFactorY = this.ref_img.clientHeight
+            let scaleFactorX = this.props.paneWidth
+            let scaleFactorY = this.props.paneHeight
             let {pos, size, anchorPoint} = cursor.payload
             let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
             nodeInfoTips = this.genNodeInfoTips(cursor, 'ref_nodeInfoTips', nodeBounds, 200000)
         }
         let nodeInfoTipsForSelecting = null
         if (this.ref_imgMask && this.state.elementDetected) {
-            let scaleFactorX = this.ref_img.clientWidth
-            let scaleFactorY = this.ref_img.clientHeight
+            let scaleFactorX = this.props.paneWidth
+            let scaleFactorY = this.props.paneHeight
             let {pos, size, anchorPoint} = this.state.elementDetected.payload
             let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
             nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, 'ref_nodeInfoTips_float', nodeBounds, 10000)
@@ -386,7 +384,7 @@ class ElementPane extends MouseoverComponent {
                 {this.state.mouseover && this.genCoordTips()}
                 {this.state.mouseover && maskForSelecting}
             </div>
-            <img ref={r => this.ref_img = r} src={this.props.screen} style={{width: '100%'}} />
+            <img src={this.props.screen} style={{width: '100%'}} />
         </div>
     }
 }
@@ -398,6 +396,8 @@ ElementPane.propTypes = {
     screen: React.PropTypes.string,
     screenWidth: React.PropTypes.number,
     screenHeight: React.PropTypes.number,
+    paneWidth: React.PropTypes.number,
+    paneHeight: React.PropTypes.number,
 }
 
 export class InspectorPanel extends React.Component {
@@ -568,7 +568,9 @@ export class InspectorPanel extends React.Component {
             </div>
             {!!tree && <Treebeard data={tree} onToggle={this.handleSelectElement} style={hierarchyTreeStyle} decorators={myDecorators} />}
         </div>
-        const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={this.props.hierarchyTree} screen={this.props.screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} />
+        const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={this.props.hierarchyTree} 
+                                screen={this.props.screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} 
+                                paneWidth={this.state.elementPaneWidth} paneHeight={this.state.elementPaneWidth * this.props.screenHeight / this.props.screenWidth} />
         const attributePane = <div ref={r => this.ref_attributePane = r}> 
             {!!cursor && <div style={{padding: '3px'}}>
                 <div>path:  
