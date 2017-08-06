@@ -1,1 +1,1 @@
-./node_modules/electron-packager/cli.js . --out build/
+./node_modules/electron-packager/cli.js . --out --overwrite build/
