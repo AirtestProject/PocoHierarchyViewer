@@ -1,4 +1,3 @@
-
 const _ = require('lodash')
 const uuid = require('uuid-js')
 const React = require('react')
@@ -21,7 +20,7 @@ import {Icon} from '../util/icon'
 
 // 节点类型优先级，越后面优先级越高
 const NodeTypePrioirties = ['Sprite', 'ImageView', 'Label', 'RichText', 'TextField', 'Text', 'Slider', 'CheckBox', 'Button']
-const IgnoredCCTypes = ['Node', 'Layer', 'Layout', 'RelativeLayout', 'LinearLayout', 'LayerColor', 'Scene', 'Bone', 'Armature', 'ParticleSystemQuad', 'PaletteSprite', 'AvatarLayer', 'AvatarGroupLayer']
+const IgnoredCCTypes = ['Node', 'Layer', 'Layout', 'VBox', 'HBox', 'RelativeLayout', 'LinearLayout', 'FrameLayout', 'LayerColor', 'Scene', 'Bone', 'Armature', 'ParticleSystemQuad', 'PaletteSprite', 'AvatarLayer', 'AvatarGroupLayer']
 const NodeType2IconName = {
     Layer: ['mdi-maps-layers', ''],
     LayerColor: ['mdi-maps-layers', ''],
@@ -30,6 +29,8 @@ const NodeType2IconName = {
     FrameLayout: ['mdi-action-view-quilt', ''],
     LinearLayout: ['mdi-action-view-quilt', ''],
     RelativeLayout: ['mdi-action-view-quilt', ''],
+    VBox: ['view_stream', ''],
+    HBox: ['view_column', ''],
 
     ScrollView: ['format_list_bulleted', ''],
     Node: ['share', ''],
@@ -55,6 +56,9 @@ const NodeType2IconName = {
     Widget: ['widgets', ''],
     CheckBox: ['check_box', 'yellowgreen'],
     Slider: ['adjust', 'yellowgreen'],
+
+    model: ['home', ''],
+    sfx: ['star', ''],
 }
 
 
@@ -157,6 +161,176 @@ const arrayCompare = (a, b) => {
     }
 }
 
+const convertNodePosToRenderPos = (x, y, w, h, ax, ay, _sx, _sy) => {
+    // _sx: scale factor from [0, 1] to browser screen
+    // 不需要再求一次宽和高的缩放了，因为在获取节点属性时已经计算到最终宽高值了
+    x *= _sx
+    y *= _sy
+    w *= _sx
+    h *= _sy
+    let bound = {
+        left: (x - w * ax), 
+        top: (y - h * ay),
+        width: w,
+        height: h,
+    }
+    return bound
+}
+
+class NodeInfoTips extends React.Component {
+    constructor(props) {
+        super(props)
+    }
+    render() {
+        let node = this.props.node
+
+        // node info tips
+        let typename = node.payload.type
+        let [icon, color] = ['', '']
+        let iconType = getNodeIcon(typename)
+        if (iconType) {
+            [icon, color] = iconType 
+        }
+
+        return <span>
+            <div style={{display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.25)', padding: '3px'}}>
+                <Icon icon={icon} color={color} size={16} />
+                <span style={{fontFamily: 'consolas', display: 'inline-block'}}>{' ' + typename}</span>
+            </div>
+            <div style={{display: 'inline-block', padding: '3px'}}>{' ' + node.name}</div>
+        </span>
+    }
+}
+
+class NodeMask extends React.Component {
+    constructor(props) {
+        super(props)
+        autoBind(this)
+        this.ref_infoTips = null
+    }
+    render() {
+        let node = this.props.node
+        let {pos, size, anchorPoint} = node.payload
+        let nodeBounds = convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], this.props.paneWidth, this.props.paneHeight)
+        let zIndex = this.props.zIndex || 10001
+        let refImgMaskLayer = this.props.refImgMaskLayer
+
+        // node info tips bounds
+        let style = {position: 'absolute', zIndex: zIndex, whiteSpace: 'nowrap', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.7)'}
+        let bound = {left: nodeBounds.left, top: nodeBounds.top + nodeBounds.height + 1}
+        if (this.ref_infoTips) {
+            let nodeInfoTipsWidth = this.ref_infoTips.clientWidth
+            let nodeInfoTipsHeight = this.ref_infoTips.clientHeight
+            if (bound.top > refImgMaskLayer.clientHeight - nodeInfoTipsHeight) {
+                if (nodeBounds.height < refImgMaskLayer.clientHeight / 2) {
+                    // 处于底部但又不太高的元素
+                    bound.top = nodeBounds.top - nodeInfoTipsHeight
+                } else {
+                    // 处于底部很高的元素
+                    bound.bottom = 0
+                    delete bound.top
+                }
+            }
+            if (bound.left > refImgMaskLayer.clientWidth - nodeInfoTipsWidth) {
+                bound.right = 0
+                delete bound.left
+            }
+            if (bound.left < 0) {
+                bound.left = 0
+            }
+        }
+        _.forEach(bound, (val, key) => {
+            bound[key] = val + 'px'
+        })
+        style = Object.assign(style, bound)
+
+        // square mask
+        let mask = this.props.mask || {}
+        let fill = mask.fill || 'rgba(255,244,0,0.2)'
+        let stroke = mask.stroke || 'lightgreen'
+        let anchorPos = {left: pos[0] * this.props.paneWidth - 1 + 'px', top: pos[1] * this.props.paneHeight - 1 + 'px'}  // 这点往左上角偏移一个像素
+
+        return <div>
+            <div ref={r => this.ref_infoTips = r} style={style}>
+                <NodeInfoTips node={node} /> 
+            </div>
+            <div style={Object.assign({position: 'absolute', border: `1px solid ${stroke}`, zIndex: 100, backgroundColor: fill}, nodeBounds)}></div>
+            <div style={Object.assign({position: 'absolute', border: '2px solid orangered', zIndex: 101, width: '3px', height: '3px'}, anchorPos)}></div>
+        </div>
+    }
+}
+
+
+class NodeInfoTipsButton extends MouseoverComponent {
+    constructor(props) {
+        super(props)
+        autoBind(this)
+    }
+    handleSelecting(e) {
+        this.handleMouseEnter(e)
+        if (this.props.onSelecting) {
+            this.props.onSelecting(this.props.node)
+        }
+    }
+    handleSelected(e) {
+        if (this.props.onSelected) {
+            this.props.onSelected(this.props.node)
+        }
+    }
+    render() {
+        let node = this.props.node
+        let backgroundColor = this.state.mouseover ? '#333' : ''
+        let nodetype = transformType(node.payload.type)
+        let opacity = IgnoredCCTypes.indexOf(nodetype) < 0 ? 1 : 0.6
+        return <div style={{fontSize: '12px', lineHeight: '12px', backgroundColor, opacity, cursor: 'default'}} className='not-selectable' onMouseEnter={this.handleSelecting} onMouseLeave={this.handleMouseLeave} onClick={this.handleSelected} >
+            <NodeInfoTips node={node} />
+        </div>
+    }
+}
+
+
+class NodesSelectionContextMenu extends React.Component { 
+    constructor(props) {
+        super(props)
+        this.ref_this = null
+    }
+    render() {
+        let elementsUnderneath = _.map(this.props.elementDetectedAllLink.value, node => {
+            const onSelected = n2 => {
+                this.props.parent.props.parent.handleSelectElement(n2, true)
+                TreeUtil.expandNode(n2)
+                this.props.parent.setState({elementDetected: null})
+                this.props.elementDetectedAllLink.requestChange([])
+            }
+            const onSelecting = n2 => {
+                this.props.parent.setState({elementDetected: n2, mouseover: true})
+            }
+            return <NodeInfoTipsButton key={node.uuid} node={node} onSelecting={onSelecting} onSelected={onSelected} />
+        })
+
+        let [x, y] = this.props.offset
+        if (this.ref_this) {
+            let width = this.ref_this.clientWidth
+            let height = this.ref_this.clientHeight
+            if (x + width > this.props.paneWidth) {
+                x = this.props.paneWidth - width
+                if (x < 0) {
+                    x = 0
+                }
+            }
+            if (y + height > this.props.paneHeight) {
+                y = this.props.paneHeight - height
+                if (y < 0) {
+                    y = 0
+                }
+            }
+        }
+        return <div ref={r => this.ref_this = r} style={{position: 'absolute', left: x, top: y, backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px', zIndex: 300000}}>
+            {elementsUnderneath}
+        </div>
+    }
+}
+
 
 class ElementPane extends MouseoverComponent {
     constructor(props) {
@@ -165,40 +339,48 @@ class ElementPane extends MouseoverComponent {
             refreshing: true,
             coordTipsCoord: [0, 0],
             elementDetected: null,    // 只能选择模式检测出来的节点
+
+            elementDetectedAll: [],
+            underneathElementsTipsOffsets: [0, 0],
         }, this.superState())
         autoBind(this)
         this._findOverlayedNode = _.throttle(this._findOverlayedNode, 50, {trailing: false})
 
+        this.ref_this = null
         this.ref_coordTips = null
         this.ref_nodeInfoTips = null
         this.ref_nodeInfoTips_float = null
         this.ref_imgMask = null
     }
 
-    _findOverlayedNode(offsetX, offsetY) {
+    _getAllNodesUnder(px, py, all=false) {
         let scaleFactorX = this.props.paneWidth
         let scaleFactorY = this.props.paneHeight
         let matchedNodes = []
         TreeUtil.traverse(this.props.hierarchyTree, node => {
             let {type, visible, parentVisible, pos, size, anchorPoint, scale} = node.payload
             type = transformType(type)
-            if (IgnoredCCTypes.indexOf(type) < 0) {
+            if (all || IgnoredCCTypes.indexOf(type) < 0) {
                 if (visible && parentVisible !== false) {
                     let [x, y] = pos
                     let [w, h] = size
                     let [ax, ay] = anchorPoint
-                    let {left, top, width, height} = this.convertNodePosToRenderPos(x, y, w, h, ax, ay, scaleFactorX, scaleFactorY)
-                    if (offsetX >= left && offsetX <= left + width && offsetY >= top && offsetY <= top + height) {
+                    let {left, top, width, height} = convertNodePosToRenderPos(x, y, w, h, ax, ay, scaleFactorX, scaleFactorY)
+                    if (px >= left && px <= left + width && py >= top && py <= top + height) {
                         matchedNodes.push(node)
                     }
                 }
             }
         })
-        
         matchedNodes.sort((a, b) => {
             return -arrayCompare(a.payload.depthLst, b.payload.depthLst)
         })
-        this.setState({elementDetected: matchedNodes[0] || null})
+        return matchedNodes
+    }
+
+    _findOverlayedNode(offsetX, offsetY) {
+        let elementDetected = this._getAllNodesUnder(offsetX, offsetY)[0] || null
+        this.setState({elementDetected})
     }
     handleAutoDetectingElement(evt) {
         if (!this.props.hierarchyTree) {
@@ -215,37 +397,10 @@ class ElementPane extends MouseoverComponent {
         }
         this.props.parent.handleSelectElement(this.state.elementDetected, true)
         TreeUtil.expandNode(this.state.elementDetected)
-        this.setState({elementDetected: null})
-    }
-    handleCancelAutoDetectingElement(evt) {
-        evt.stopPropagation()
-        evt.preventDefault()
+        this.setState({elementDetected: null, elementDetectedAll: []})
     }
     handleClearAutuDetectingElementMask() {
         this.setState({elementDetected: null, mouseover: false})
-    }
-
-    convertNodePosToRenderPos(x, y, w, h, ax, ay, _sx, _sy) {
-        // _sx: scale factor from [0, 1] to browser screen
-        // 不需要再求一次宽和高的缩放了，因为在获取节点属性时已经计算到最终宽高值了
-        x *= _sx
-        y *= _sy
-        w *= _sx
-        h *= _sy
-        let bound = {
-            left: (x - w * ax), 
-            top: (y - h * ay),
-            width: w,
-            height: h,
-        }
-        return bound
-    }
-    genSelectedElementMask(x, y, w, h, ax, ay, sx, sy, bgColor='rgba(255,244,0,0.2)', borderColor='lightgreen') {
-        let bound = this.convertNodePosToRenderPos(x, y, w, h, ax, ay, sx, sy)
-        _.forEach(bound, (val, key) => {
-            bound[key] = val + 'px'
-        })
-        return <div style={Object.assign({position: 'absolute', border: `1px solid ${borderColor}`, zIndex: 100, backgroundColor: bgColor}, bound)}></div>
     }
 
     genCoordTips() {
@@ -273,116 +428,51 @@ class ElementPane extends MouseoverComponent {
         let coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`${parseInt(tipsX / scaleFactorX * this.props.screenWidth)}, ${parseInt(tipsY / scaleFactorY * this.props.screenHeight)}`}</div>
         return coordTips
     }
-    genNodeInfoTips(node, ref, nodeBounds=null, zIndex=10001) {
-        let typename = node.payload.type
-        let style = {position: 'absolute', zIndex: zIndex, whiteSpace: 'nowrap', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.7)'}
-        let [icon, color] = ['', '']
-        let iconType = getNodeIcon(typename)
-        if (iconType) {
-            [icon, color] = iconType 
-        }
-        if (nodeBounds) {
-            let bound = {left: nodeBounds.left, top: nodeBounds.top + nodeBounds.height + 1}
-            if (this[ref]) {
-                let nodeInfoTipsWidth = this[ref].clientWidth
-                let nodeInfoTipsHeight = this[ref].clientHeight
-                if (bound.top > this.ref_imgMask.clientHeight - nodeInfoTipsHeight) {
-                    if (nodeBounds.height < this.ref_imgMask.clientHeight / 2) {
-                        // 处于底部但又不太高的元素
-                        bound.top = nodeBounds.top - nodeInfoTipsHeight
-                    } else {
-                        // 处于底部很高的元素
-                        bound.bottom = 0
-                        delete bound.top
-                    }
-                }
-                if (bound.left > this.ref_imgMask.clientWidth - nodeInfoTipsWidth) {
-                    bound.right = 0
-                    delete bound.left
-                }
-                if (bound.left < 0) {
-                    bound.left = 0
-                }
-            }
-            _.forEach(bound, (val, key) => {
-                bound[key] = val + 'px'
-            })
-            style = Object.assign(style, bound)
-        }
-        return <div ref={r => this[ref] = r} style={style}>
-            <div style={{display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.25)', padding: '3px'}}>
-                <Icon icon={icon} color={color} size={16} />
-                <span style={{fontFamily: 'consolas', display: 'inline-block'}}>{' ' + typename}</span>
-            </div>
-            <div style={{display: 'inline-block', padding: '3px'}}>{' ' + node.name}</div>
-        </div>
-    }
     componentWillReceiveProps(nextProps) {
         this.setState({refreshing: false})
     }
-    componentDidMount(nextProps) {
+    componentDidMount() {
         if (this.props.screen) {
             this.setState({refreshing: false})
         }
+    }
+    handleViewAllNodesUnder(evt) {
+        evt.persist()
+        evt.preventDefault()
+        let {offsetX, offsetY} = evt.nativeEvent
+        let nodes = this._getAllNodesUnder(offsetX, offsetY, true)
+        this.setState({elementDetectedAll: nodes, underneathElementsTipsOffsets: [offsetX, offsetY]})
+        console.log(nodes)
     }
 
     render() {
         let cursor = this.props.hierarchyCursor
         
-        // square mask
-        let mask = null
-        let anchor = null
-        if (cursor && this.ref_imgMask) {
-            let scaleFactorX = this.props.paneWidth
-            let scaleFactorY = this.props.paneHeight
-            let {pos, size, anchorPoint} = cursor.payload
-            mask = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
-            let anchorPos = {left: pos[0] * scaleFactorX - 1 + 'px', top: pos[1] * scaleFactorY - 1 + 'px'}  // 这点往左上角偏移一个像素
-            anchor = <div style={Object.assign({position: 'absolute', border: '2px solid orangered', zIndex: 101, width: '3px', height: '3px'}, anchorPos)}></div>
-        }
-        let maskForSelecting = null
-        if (this.ref_imgMask && this.state.elementDetected) {
-            let scaleFactorX = this.props.paneWidth
-            let scaleFactorY = this.props.paneHeight
-            let {pos, size, anchorPoint} = this.state.elementDetected.payload
-            maskForSelecting = this.genSelectedElementMask(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY, 'rgba(0, 128, 255, 0.3)')
-        }
+        let elementsUnderneath = _.map(this.state.elementDetectedAll, node => {
+            const onSelected = n2 => {
+                this.props.parent.handleSelectElement(n2, true)
+                TreeUtil.expandNode(n2)
+                this.setState({elementDetected: null, elementDetectedAll: []})
+            }
+            return <NodeInfoTipsButton key={node.uuid} node={node} onSelecting={() => this.setState({elementDetected: node, mouseover: true})} onSelected={onSelected} />
+        })
 
-        // type and name info tips
-        let nodeInfoTips = null
-        if (this.ref_imgMask && cursor) {
-            let scaleFactorX = this.props.paneWidth
-            let scaleFactorY = this.props.paneHeight
-            let {pos, size, anchorPoint} = cursor.payload
-            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
-            nodeInfoTips = this.genNodeInfoTips(cursor, 'ref_nodeInfoTips', nodeBounds, 200000)
-        }
-        let nodeInfoTipsForSelecting = null
-        if (this.ref_imgMask && this.state.elementDetected) {
-            let scaleFactorX = this.props.paneWidth
-            let scaleFactorY = this.props.paneHeight
-            let {pos, size, anchorPoint} = this.state.elementDetected.payload
-            let nodeBounds = this.convertNodePosToRenderPos(pos[0], pos[1], size[0], size[1], anchorPoint[0], anchorPoint[1], scaleFactorX, scaleFactorY)
-            nodeInfoTipsForSelecting = this.genNodeInfoTips(this.state.elementDetected, 'ref_nodeInfoTips_float', nodeBounds, 10000)
-        }
-
-        return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
+        return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}} onContextMenu={this.handleViewAllNodesUnder} >
             <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 99999}} 
                 onMouseMove={this.handleAutoDetectingElement} 
                 onMouseOut={this.handleClearAutuDetectingElementMask} 
                 onClick={this.handleSelectAutoDetectedElment}
-                onContextMenu={this.handleCancelAutoDetectingElement}
                 onMouseEnter={this.handleMouseEnter} 
                 >
             </div>
             {this.state.refreshing && <div style={{position: 'absolute', left: 0, right: 0, top: '40%', height: '90px', lineHeight: '90px', textAlign: 'center', fontSize: '26px', zIndex: 10000, backgroundColor: 'rgba(0,0,0,0.5)'}}>处理中...</div>}
+            {this.state.elementDetectedAll.length > 0 && <NodesSelectionContextMenu parent={this} offset={this.state.underneathElementsTipsOffsets} elementDetectedAllLink={linkState(this, 'elementDetectedAll')} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} />}
             <div ref={r => this.ref_imgMask = r} style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
-                {nodeInfoTips}
-                {mask}
-                {anchor}
-                {this.state.mouseover && nodeInfoTipsForSelecting}
+                {!!cursor && <NodeMask node={cursor} refImgMaskLayer={this.ref_imgMask} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} zIndex={200000} />}
+                {this.state.mouseover && !!this.state.elementDetected && 
+                    <NodeMask node={this.state.elementDetected} mask={{fill: 'rgba(0,128,255,0.3)'}} refImgMaskLayer={this.ref_imgMask} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} zIndex={10000} />
+                }
                 {this.state.mouseover && this.genCoordTips()}
-                {this.state.mouseover && maskForSelecting}
             </div>
             <img src={this.props.screen} style={{width: '100%'}} />
         </div>
@@ -415,7 +505,6 @@ export class InspectorPanel extends React.Component {
         autoBind(this)
 
         this.ref_elementPane = null
-        this.ref_elementPath = null
         this.ref_hierarchyPane = null
         this.ref_attributePane = null
     }
@@ -496,9 +585,6 @@ export class InspectorPanel extends React.Component {
             hierarchyCursor: null,
         })
     }
-    handleCopyPath() {
-        Misc.copyToClipboard(this.ref_elementPath)
-    }
 
     sendClickEvent() {
         // 保留，暂未完成
@@ -511,7 +597,7 @@ export class InspectorPanel extends React.Component {
     toggleShowInvisibileNode() {
         this.setState({hierarchyShowInvisibleNode: !this.state.hierarchyShowInvisibleNode})
     }
-    handleMainSplitePaneResized(size) {
+    handleMainSplitPaneResized(size) {
         this.setState({elementPaneWidth: size})
     }
     handleRefreshRequest() {
@@ -573,10 +659,6 @@ export class InspectorPanel extends React.Component {
                                 paneWidth={this.state.elementPaneWidth} paneHeight={this.state.elementPaneWidth * this.props.screenHeight / this.props.screenWidth} />
         const attributePane = <div ref={r => this.ref_attributePane = r}> 
             {!!cursor && <div style={{padding: '3px'}}>
-                <div>path:  
-                    <kbd ref={r => this.ref_elementPath = r} style={{fontSize: '12px', marginLeft: '5px'}}>{cursor.path}</kbd>
-                    <IconButton icon='mdi-content-content-copy' hint='copy' onClick={this.handleCopyPath} iconStyle={{fontSize: '14px', verticalAlign: 'baseline'}}/>
-                </div>
                 <div style={{marginTop: '3px'}}>
                     <ObjectInspector theme="chromeDark" data={cursor.payload} name={cursor.name} expandLevel={1} />
                 </div>
@@ -592,7 +674,7 @@ export class InspectorPanel extends React.Component {
             <div style={{position: 'absolute', top: '25px', right: 0, bottom: 0, left: 0}}>
                 {function () {
                     if (this.props.screenHeight > this.props.screenWidth) {
-                        return <SplitPane split='vertical' defaultSize={405} onChange={this.handleMainSplitePaneResized} pane1Style={{overflow: 'hidden'}} pane2Style={{overflow: 'auto'}} >
+                        return <SplitPane split='vertical' defaultSize={405} onChange={this.handleMainSplitPaneResized} pane1Style={{overflow: 'hidden'}} pane2Style={{overflow: 'auto'}} >
                                 {elementPane}
                             <SplitPane split='vertical' defaultSize={450}>
                                 {hierarchyPane}
@@ -600,7 +682,7 @@ export class InspectorPanel extends React.Component {
                             </SplitPane>
                         </SplitPane>
                     } else {
-                        return <SplitPane split='vertical' defaultSize={720} onChange={this.handleMainSplitePaneResized} >
+                        return <SplitPane split='vertical' defaultSize={720} onChange={this.handleMainSplitPaneResized} >
                             <SplitPane split='horizontal' defaultSize={405} pane1Style={{overflow: 'hidden'}} pane2Style={{overflow: 'auto'}} >
                                 {elementPane}
                                 {attributePane}
