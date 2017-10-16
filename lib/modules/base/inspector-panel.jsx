@@ -180,6 +180,11 @@ const convertNodePosToRenderPos = (x, y, w, h, ax, ay, _sx, _sy) => {
 class NodeInfoTips extends React.Component {
     constructor(props) {
         super(props)
+        autoBind(this)
+    }
+    stopContextMenu(e) {
+        e.stopPropagation()
+        e.preventDefault()
     }
     render() {
         let node = this.props.node
@@ -192,7 +197,7 @@ class NodeInfoTips extends React.Component {
             [icon, color] = iconType 
         }
 
-        return <span>
+        return <span onContextMenu={this.stopContextMenu}>
             <div style={{display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.25)', padding: '3px'}}>
                 <Icon icon={icon} color={color} size={16} />
                 <span style={{fontFamily: 'consolas', display: 'inline-block'}}>{' ' + typename}</span>
@@ -277,19 +282,30 @@ class NodeInfoTipsButton extends MouseoverComponent {
             this.props.onSelected(this.props.node)
         }
     }
+    stopContextMenu(e) {
+        e.stopPropagation()
+        e.preventDefault()
+    }
     render() {
         let node = this.props.node
         let backgroundColor = this.state.mouseover ? '#333' : ''
         let nodetype = transformType(node.payload.type)
         let opacity = IgnoredCCTypes.indexOf(nodetype) < 0 ? 1 : 0.6
-        return <div style={{fontSize: '12px', lineHeight: '12px', backgroundColor, opacity, cursor: 'default'}} className='not-selectable' onMouseEnter={this.handleSelecting} onMouseLeave={this.handleMouseLeave} onClick={this.handleSelected} >
+        if (this.props.parentMouseover) {
+            if (this.state.mouseover) {
+                opacity = IgnoredCCTypes.indexOf(nodetype) < 0 ? 1 : 0.7
+            } else {
+                opacity = IgnoredCCTypes.indexOf(nodetype) < 0 ? 0.3 : 0.2
+            }
+        }
+        return <div style={{fontSize: '12px', lineHeight: '12px', backgroundColor, opacity, cursor: 'default'}} className='not-selectable' onMouseEnter={this.handleSelecting} onMouseLeave={this.handleMouseLeave} onClick={this.handleSelected} onContextMenu={this.stopContextMenu}>
             <NodeInfoTips node={node} />
         </div>
     }
 }
 
 
-class NodesSelectionContextMenu extends React.Component { 
+class NodesSelectionContextMenu extends MouseoverComponent { 
     constructor(props) {
         super(props)
         this.ref_this = null
@@ -305,7 +321,7 @@ class NodesSelectionContextMenu extends React.Component {
             const onSelecting = n2 => {
                 this.props.parent.setState({elementDetected: n2, mouseover: true})
             }
-            return <NodeInfoTipsButton key={node.uuid} node={node} onSelecting={onSelecting} onSelected={onSelected} />
+            return <NodeInfoTipsButton key={node.uuid} node={node} onSelecting={onSelecting} onSelected={onSelected} parentMouseover={this.state.mouseover} />
         })
 
         let [x, y] = this.props.offset
@@ -325,7 +341,7 @@ class NodesSelectionContextMenu extends React.Component {
                 }
             }
         }
-        return <div ref={r => this.ref_this = r} style={{position: 'absolute', left: x, top: y, backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px', zIndex: 300000}}>
+        return <div ref={r => this.ref_this = r} style={{position: 'absolute', left: x, top: y, backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px', zIndex: 300000}} onMouseEnter={this.handleMouseEnter} onMouseLeave={this.handleMouseLeave}>
             {elementsUnderneath}
         </div>
     }
@@ -437,10 +453,11 @@ class ElementPane extends MouseoverComponent {
         }
     }
     handleViewAllNodesUnder(evt) {
+        console.log(evt)
         evt.persist()
         evt.preventDefault()
-        let {offsetX, offsetY} = evt.nativeEvent
-        let nodes = this._getAllNodesUnder(offsetX, offsetY, true)
+        let {offsetX, offsetY, shiftKey} = evt.nativeEvent
+        let nodes = this._getAllNodesUnder(offsetX, offsetY, shiftKey)
         this.setState({elementDetectedAll: nodes, underneathElementsTipsOffsets: [offsetX, offsetY]})
         console.log(nodes)
     }
@@ -448,15 +465,6 @@ class ElementPane extends MouseoverComponent {
     render() {
         let cursor = this.props.hierarchyCursor
         
-        let elementsUnderneath = _.map(this.state.elementDetectedAll, node => {
-            const onSelected = n2 => {
-                this.props.parent.handleSelectElement(n2, true)
-                TreeUtil.expandNode(n2)
-                this.setState({elementDetected: null, elementDetectedAll: []})
-            }
-            return <NodeInfoTipsButton key={node.uuid} node={node} onSelecting={() => this.setState({elementDetected: node, mouseover: true})} onSelected={onSelected} />
-        })
-
         return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}} onContextMenu={this.handleViewAllNodesUnder} >
             <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 99999}} 
                 onMouseMove={this.handleAutoDetectingElement} 
