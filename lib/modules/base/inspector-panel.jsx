@@ -1,3 +1,4 @@
+
 const _ = require('lodash')
 const uuid = require('uuid-js')
 const React = require('react')
@@ -7,6 +8,7 @@ const IconButton = require('../util/IconButton')
 const TreeUtil = require('../util/TreeUtil')
 const Misc = require('../util/misc')
 const MouseoverComponent = require('../util/mouseover')
+const PopoverModal = require('../util/PopoverModal')
 
 import linkState from 'react-link-state'
 import autoBind from 'react-autobind'
@@ -505,10 +507,15 @@ export class InspectorPanel extends React.Component {
             // the game client's real resolutions
             elementPaneWidth: 720,
 
+            hierarchyTree: this.props.hierarchyTree,
             hierarchyTreeNodeMap: {},  // node.uuid -> node
             hierarchyCursor: null,
             hierarchyTreeSearchContent: '',
             hierarchyShowInvisibleNode: false,  // 保留，暂未使用
+
+            // raw hierarchy states
+            showPastePanel: false,
+            rawHierarchyPasted: '',
         }
         autoBind(this)
 
@@ -535,6 +542,7 @@ export class InspectorPanel extends React.Component {
         this.setState({hierarchyCursor: node})
     }
     handleHierarchyUpdate(hierarchyTree) {
+        console.log(hierarchyTree)
         let hierarchyTreeNodeMap = {}
 
         // check parent visiblility
@@ -589,19 +597,12 @@ export class InspectorPanel extends React.Component {
         TreeUtil.expand(hierarchyTree, 3)
 
         this.setState({
+            hierarchyTree,
             hierarchyTreeNodeMap,  
             hierarchyCursor: null,
         })
     }
 
-    sendClickEvent() {
-        // 保留，暂未完成
-        let uri = this.resourceManager.get('/addon/inspector/rpc/uri')
-        if (uri && this.state.hierarchyCursor) {
-            let remoteObj = this.rpc.getObject(uri)
-            remoteObj.invoke('sendClickEvent', [this.state.hierarchyCursor.path])
-        }
-    }
     toggleShowInvisibileNode() {
         this.setState({hierarchyShowInvisibleNode: !this.state.hierarchyShowInvisibleNode})
     }
@@ -611,6 +612,20 @@ export class InspectorPanel extends React.Component {
     handleRefreshRequest() {
         this.ref_elementPane.setState({refreshing: true, screen: ''})
         this.props.onRefreshRequest(this.state.elementPaneWidth)
+    }
+    handlePasteHierarchyRequest() {
+        this.setState({showPastePanel: true})
+    }
+    handlePasteHierarchy() {
+        try {
+            let tree = JSON.parse(this.state.rawHierarchyPasted)
+            this.handleHierarchyUpdate(tree)
+            this.setState({showPastePanel: false, rawHierarchyPasted: ''})
+        } catch (e) {
+            $.toaster({message: e.message, title: 'Err', priority: 'warning'})
+            console.error('手工输入json出错。检查下面')
+            console.error(e)
+        }
     }
 
     componentWillReceiveProps(nextProps) {
@@ -634,7 +649,7 @@ export class InspectorPanel extends React.Component {
         let cursor = this.state.hierarchyCursor
 
         // hierarchy tree filter: search/conditions
-        let tree = this.props.hierarchyTree
+        let tree = this.state.hierarchyTree
         if (tree) {
             // invisible nodes
             if (!this.state.hierarchyShowInvisibleNode) {
@@ -662,7 +677,7 @@ export class InspectorPanel extends React.Component {
             </div>
             {!!tree && <Treebeard data={tree} onToggle={this.handleSelectElement} style={hierarchyTreeStyle} decorators={myDecorators} />}
         </div>
-        const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={this.props.hierarchyTree} 
+        const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={tree} 
                                 screen={this.props.screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} 
                                 paneWidth={this.state.elementPaneWidth} paneHeight={this.state.elementPaneWidth * this.props.screenHeight / this.props.screenWidth} />
         const attributePane = <div ref={r => this.ref_attributePane = r}> 
@@ -676,7 +691,7 @@ export class InspectorPanel extends React.Component {
             <div style={{height: '25px', padding: '2px 10px'}}>
                 {this.props.customToolbar}
                 {toolBarButton('mdi-navigation-refresh', '刷新', this.handleRefreshRequest)}
-                {false && !!cursor && toolBarButton('mdi-maps-my-location', '点击测试(尚未完成)', this.sendClickEvent)}
+                {toolBarButton('content_paste', '手动输入hierarchy', this.handlePasteHierarchyRequest)}
                 {false && toolBarButton(this.state.hierarchyShowInvisibleNode ? 'mdi-action-visibility': 'mdi-action-visibility-off', '显示invisible节点', this.toggleShowInvisibileNode, this.state.hierarchyShowInvisibleNode ? 'color-primary' : '-')}
             </div>
             <div style={{position: 'absolute', top: '25px', right: 0, bottom: 0, left: 0}}>
@@ -700,6 +715,10 @@ export class InspectorPanel extends React.Component {
                     }
                 }.bind(this) ()}
             </div>
+            <PopoverModal backdrop show={this.state.showPastePanel} onCancel={() => this.setState({showPastePanel: false})} onConfirm={this.handlePasteHierarchy} >
+                <div>Paste hierarchy json string below.</div>
+                <textarea className='form-control' rows={8} valueLink={linkState(this, 'rawHierarchyPasted')} />
+            </PopoverModal>
         </div>
     }
 }
