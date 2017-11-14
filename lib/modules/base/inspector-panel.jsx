@@ -1,4 +1,3 @@
-
 const _ = require('lodash')
 const uuid = require('uuid-js')
 const React = require('react')
@@ -21,10 +20,10 @@ import {Icon} from '../util/icon'
 
 
 // 节点类型优先级，越后面优先级越高
-const NodeTypePrioirties = ['Sprite', 'ImageView', 'Label', 'RichText', 'TextField', 'Text', 'Slider', 'CheckBox', 'Button']
-const IgnoredCCTypes = ['Node', 'Layer', 'Layout', 'VBox', 'HBox', 'RelativeLayout', 'LinearLayout', 'FrameLayout', 'LayerColor', 'Scene', 'Bone', 'Armature', 'ParticleSystemQuad', 'PaletteSprite', 'AvatarLayer', 'AvatarGroupLayer']
+const IgnoredCCTypes = ['Node', 'Layer', 'Layout', 'Mask', 'VBox', 'HBox', 'RelativeLayout', 'LinearLayout', 'FrameLayout', 'LayerColor', 'Scene', 'Bone', 'Animator', 'Armature', 'ParticleSystemQuad', 'PaletteSprite', 'AvatarLayer', 'AvatarGroupLayer']
 const NodeType2IconName = {
     Layer: ['mdi-maps-layers', ''],
+    Mask: ['mdi-maps-layers', ''],
     LayerColor: ['mdi-maps-layers', ''],
 
     Layout: ['mdi-action-view-quilt', ''],
@@ -35,7 +34,10 @@ const NodeType2IconName = {
     HBox: ['view_column', ''],
 
     ScrollView: ['format_list_bulleted', ''],
+    ScrollRect: ['format_list_bulleted', ''],
+    ScrollBar: ['clear_all', ''],
     Node: ['share', ''],
+    GameObject: ['home', ''],
     ImageView: ['mdi-image-image', 'lightpink'],
     Image: ['mdi-image-image', 'lightpink'],
     View: ['view_agenda', ''],
@@ -46,6 +48,7 @@ const NodeType2IconName = {
     Label: ['mdi-content-text-format', 'white'],
     TextField: ['mdi-editor-mode-edit', 'yellowgreen'],
     EditText: ['mdi-editor-mode-edit', 'yellowgreen'],
+    InputField: ['mdi-editor-mode-edit', 'yellowgreen'],
     Button: ['mdi-av-games', 'yellowgreen'],
     ProgressTimer: ['mdi-image-timer', 'lightskyblue'],
     LoadingBar: ['mdi-device-signal-cellular-2-bar', 'lightskyblue'],
@@ -58,6 +61,11 @@ const NodeType2IconName = {
     Widget: ['widgets', ''],
     CheckBox: ['check_box', 'yellowgreen'],
     Slider: ['adjust', 'yellowgreen'],
+    Selectable: ['select_all', ''], 
+    Toggle: ['radio_button_checked', 'yellowgreen'],
+    ToggleGroup: ['radio_button_checked', 'yellowgreen'],
+    DropDown: ['arrow_drop_down_circle', 'yellowgreen'],
+    Animator: ['rowing', ''],
 
     model: ['home', ''],
     sfx: ['star', ''],
@@ -513,9 +521,13 @@ export class InspectorPanel extends React.Component {
             hierarchyTreeSearchContent: '',
             hierarchyShowInvisibleNode: false,  // 保留，暂未使用
 
+            screen: this.props.screen,
+
             // raw hierarchy states
             showPastePanel: false,
             rawHierarchyPasted: '',
+            rawScreenPasted: '',
+            rawScreenFormatPasted: 'jpg',
         }
         autoBind(this)
 
@@ -617,20 +629,30 @@ export class InspectorPanel extends React.Component {
         this.setState({showPastePanel: true})
     }
     handlePasteHierarchy() {
-        try {
-            let tree = JSON.parse(this.state.rawHierarchyPasted)
-            this.handleHierarchyUpdate(tree)
-            this.setState({showPastePanel: false, rawHierarchyPasted: ''})
-        } catch (e) {
-            $.toaster({message: e.message, title: 'Err', priority: 'warning'})
-            console.error('手工输入json出错。检查下面')
-            console.error(e)
+        if (this.state.rawHierarchyPasted) {
+            try {
+                let tree = JSON.parse(this.state.rawHierarchyPasted)
+                this.handleHierarchyUpdate(tree)
+                this.setState({showPastePanel: false, rawHierarchyPasted: ''})
+            } catch (e) {
+                $.toaster({message: e.message, title: 'Err', priority: 'warning'})
+                console.error('手工输入json出错。检查下面')
+                console.error(e)
+            }
+        }
+
+        // for screen
+        if (this.state.rawScreenPasted) {
+            this.setState({showPastePanel: false, screen: `data:image/${this.state.rawScreenFormatPasted};base64,${this.state.rawScreenPasted}`, rawScreenPasted: ''})
         }
     }
 
     componentWillReceiveProps(nextProps) {
         if (nextProps.hierarchyTree) {
             this.handleHierarchyUpdate(nextProps.hierarchyTree)
+        }
+        if (nextProps.screen && nextProps.screen !== this.state.screen) {
+            this.setState({screen: nextProps.screen})
         }
     }
     componentDidMount() {
@@ -647,6 +669,7 @@ export class InspectorPanel extends React.Component {
     }
     render() {
         let cursor = this.state.hierarchyCursor
+        let screen = this.state.screen
 
         // hierarchy tree filter: search/conditions
         let tree = this.state.hierarchyTree
@@ -678,7 +701,7 @@ export class InspectorPanel extends React.Component {
             {!!tree && <Treebeard data={tree} onToggle={this.handleSelectElement} style={hierarchyTreeStyle} decorators={myDecorators} />}
         </div>
         const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={tree} 
-                                screen={this.props.screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} 
+                                screen={screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} 
                                 paneWidth={this.state.elementPaneWidth} paneHeight={this.state.elementPaneWidth * this.props.screenHeight / this.props.screenWidth} />
         const attributePane = <div ref={r => this.ref_attributePane = r}> 
             {!!cursor && <div style={{padding: '3px'}}>
@@ -717,7 +740,9 @@ export class InspectorPanel extends React.Component {
             </div>
             <PopoverModal backdrop show={this.state.showPastePanel} onCancel={() => this.setState({showPastePanel: false})} onConfirm={this.handlePasteHierarchy} >
                 <div>Paste hierarchy json string below.</div>
-                <textarea className='form-control' rows={8} valueLink={linkState(this, 'rawHierarchyPasted')} />
+                <textarea className='form-control' rows={6} valueLink={linkState(this, 'rawHierarchyPasted')} placeholder='hierarchy' />
+                <textarea className='form-control' rows={6} valueLink={linkState(this, 'rawScreenPasted')} placeholder='b64 encoded screen' />
+                <textarea className='form-control' rows={1} valueLink={linkState(this, 'rawScreenFormatPasted')} placeholder='png/jpg/etc.' />
             </PopoverModal>
         </div>
     }
