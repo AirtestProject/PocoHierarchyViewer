@@ -654,6 +654,15 @@ export class InspectorPanel extends React.Component {
         if (nextProps.screen && nextProps.screen !== this.state.screen) {
             this.setState({screen: nextProps.screen})
         }
+
+        // reset elementPaneWidth to default width when screen rotation changed
+        if (nextProps.screenHeight !== this.props.screenHeight || nextProps.screenWidth !== this.props.screenWidth) {
+            if (nextProps.screenHeight > nextProps.screenWidth) {
+                this.setState({elementPaneWidth: 405})
+            } else {
+                this.setState({elementPaneWidth: 720})
+            }
+        }
     }
     componentDidMount() {
         $(this.ref_hierarchyPane).on('mousewheel', evt => {

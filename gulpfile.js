@@ -10,13 +10,7 @@ var jsxpath = 'lib/modules/**/*.jsx';
 var jsxoutput = 'lib/babel-build/';
 var bundleoutput = 'lib/js-build/';
 var entries = [
-    // ['skiller'],
-    // ['instruction'],
-    // ['settings'],
-    // ['devregister'],
-    // ['project'],
-    // ['myhunter'],
-    ['temp'],
+    ['viewer'],
 ];
 
 
