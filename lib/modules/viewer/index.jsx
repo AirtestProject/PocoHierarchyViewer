@@ -7,6 +7,7 @@ import rp from 'request-promise'
 import $ from 'jquery'
 import _ from 'lodash'
 
+import IconButton from '../util/IconButton'
 import {DropdownSelectionFixed} from '../util/DropdownSelection'
 
 import {globalEventEmitter} from './event'
@@ -28,6 +29,9 @@ class MainConnector extends React.Component {
     handleModeChanged(val, key) {
         localStorage.setItem('connector-mode', val)
     }
+    handleOpenDevTool() {
+        window.require('electron').remote.getCurrentWindow().openDevTools()
+    }
 
     componentDidMount() {
         globalEventEmitter.on('disconnect-device', this.disconnectDevice)
@@ -46,12 +50,13 @@ class MainConnector extends React.Component {
     render() {
         return <div>
             {!this.state.inspectorViewInstance && <div>
-                <div style={{backgroundColor: '#222', padding: '5px 15px'}}>
+                <div style={{backgroundColor: '#222', padding: '5px 15px', position: 'relative'}}>
                     <h3>Poco Hierarchy Viewer</h3>
                     <div>
                         <span>mode: </span>
                         <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} />
                     </div>
+                    <div style={{position: 'absolute', right: 0, bottom: 0, opacity: 0.5}}><IconButton icon='build' hint='Open developer tools' onClick={this.handleOpenDevTool} /></div>
                 </div>
 
                 <div style={{marginLeft: '15px'}}>
