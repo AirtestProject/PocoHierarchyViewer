@@ -4,7 +4,7 @@ import autoBind from 'react-autobind'
 import _ from 'lodash'
 
 import IconButton from '../../util/IconButton'
-import {MODE_ANDROID_APP, MODE_UNITY} from '../connector-modes'
+import {AndroidInspectorView} from './android'
 
 const adb = window.require('adbkit')
 
@@ -19,9 +19,10 @@ export class AndroidDeviceConnector extends React.Component {
         autoBind(this)
     }
 
-    handleConnectDevice(mode, udid, info) {
+    handleConnectDevice(udid, info) {
         return () => {
-            this.props.onConnectDevice(mode, udid, info)
+            let view = <AndroidInspectorView sn={udid} device={info} />
+            this.props.onConnectDevice(view)
         }
     }
     startDeviceTracking() {
@@ -85,7 +86,7 @@ export class AndroidDeviceConnector extends React.Component {
     render() {
         let devlist = _.map(this.state.devices, dev => {
             let devInfo = this.state.devices[dev.id]
-            return <div key={dev.id}><IconButton text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={this.handleConnectDevice(MODE_ANDROID_APP, dev.id, devInfo)} /></div>
+            return <div key={dev.id}><IconButton text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={this.handleConnectDevice(dev.id, devInfo)} /></div>
         })
         return <div>            
             {Object.keys(this.state.devices).length === 0 && <div style={{marginTop: '20px', marginBottom: '10px'}} className='text-secondary'>No devices present</div>}

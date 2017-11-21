@@ -11,7 +11,7 @@ import {DropdownSelectionFixed} from '../util/DropdownSelection'
 
 import {globalEventEmitter} from './event'
 import {AndroidDeviceConnector} from './backend/android-connector'
-import {AndroidInspectorView} from './backend/android'
+import {Unity3dDeviceConnector} from './backend/unity3d-connector'
 import {MODE_ANDROID_APP, MODE_UNITY} from './connector-modes'
 
 
@@ -19,10 +19,14 @@ class MainConnector extends React.Component {
     constructor(props) {
         super(props)
         this.state = {
-            connectorMode: MODE_ANDROID_APP,
-            hierarchyView: null,
+            connectorMode: localStorage.getItem('connector-mode') || MODE_ANDROID_APP,
+            inspectorViewInstance: null,
         }
         autoBind(this)
+    }
+
+    handleModeChanged(val, key) {
+        localStorage.setItem('connector-mode', val)
     }
 
     componentDidMount() {
@@ -32,35 +36,31 @@ class MainConnector extends React.Component {
         globalEventEmitter.removeListener('disconnect-device', this.disconnectDevice)
     }
 
-    connectDevice(mode, udid, info) {
-        let view = null
-        if (mode === MODE_ANDROID_APP) {
-            view = <AndroidInspectorView sn={udid} device={info} />
-        }
-
-        this.setState({hierarchyView: view})
+    connectDevice(inspectorViewInstance) {
+        this.setState({inspectorViewInstance: inspectorViewInstance})
     }
     disconnectDevice() {
-        this.setState({hierarchyView: null})
+        this.setState({inspectorViewInstance: null})
     }
 
     render() {
         return <div>
-            {!this.state.hierarchyView && <div>
+            {!this.state.inspectorViewInstance && <div>
                 <div style={{backgroundColor: '#222', padding: '5px 15px'}}>
                     <h3>Poco Hierarchy Viewer</h3>
                     <div>
                         <span>mode: </span>
-                        <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} />
+                        <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} />
                     </div>
                 </div>
 
                 <div style={{marginLeft: '15px'}}>
                     {this.state.connectorMode === MODE_ANDROID_APP && <AndroidDeviceConnector onConnectDevice={this.connectDevice} />}
+                    {this.state.connectorMode === MODE_UNITY && <Unity3dDeviceConnector onConnectDevice={this.connectDevice}/>}
                 </div>
             </div>}
 
-            {this.state.hierarchyView}
+            {this.state.inspectorViewInstance}
         </div>
     }
 }
