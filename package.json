@@ -53,6 +53,7 @@
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
     "simple-pinyin": "^3.0.2",
+    "toastr": "^2.1.2",
     "uuid-js": "^0.7.5",
     "vinyl-source-stream": "^1.1.0",
     "watchify": "^3.9.0"

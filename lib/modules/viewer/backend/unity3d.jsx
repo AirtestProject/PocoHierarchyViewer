@@ -2,6 +2,7 @@
 import React from 'react'
 import autoBind from 'react-autobind'
 import rp from 'request-promise'
+import toastr from 'toastr'
 
 import {Icon} from '../../util/icon'
 
@@ -18,8 +19,6 @@ const ProfileDataBoundary = '-----pr0F1Le-B0UNdARY-!@#$%^&&*+----'
 const ProfileDataBoundaryEnd = '-----pr0F1Le-B0UNdARY-!@#$%^&&*+----1Nd---end---'
 
 
-
-
 export class Unity3dInspectorView extends InspectorViewBase {
     constructor(props) {
         super(props)
@@ -31,14 +30,12 @@ export class Unity3dInspectorView extends InspectorViewBase {
         autoBind(this)
 
         this.inBox = ''
-        this.errBox = ''
 
         this.pocoProc = spawn('python', ['-u', '-m', 'poco.drivers.unity3d.repl'])
         this.pocoProc.stdout.on('data', data => {
             data = data.toString()
-            // console.log(data)
             this.inBox += data
-            
+
             // parse hierarchy
             let hierarchyEndIndex = this.inBox.indexOf(HierarchyBoundaryEnd)
             if (hierarchyEndIndex >= 0) {
@@ -71,8 +68,15 @@ export class Unity3dInspectorView extends InspectorViewBase {
         })
         this.pocoProc.stderr.on('data', data => {
             data = data.toString()
-            this.errBox += data
-            console.error(data.toString())
+            console.error(data)
+            toastr["warning"](data)
+        })
+        this.pocoProc.on('close', exitCode => {
+            if (exitCode !== 0) {
+                let msg = 'This hierarchy viewer require python runtime and poco. Please install poco first by following command.\n"pip install poco --upgrade"'
+                let option = {closeButton: true, timeOut: 0, extendedTimeOut: 0, onclick: null, tapToDismiss: false}
+                toastr["warning"](msg, '', option)
+            }
         })
 
         this.refresh(720)
@@ -85,27 +89,48 @@ export class Unity3dInspectorView extends InspectorViewBase {
 
     refresh(width) {
         let code = `
-poco = UnityPoco(("${this.props.ip}", ${this.props.port}), True)
+def get_hierarchy_and_screen():
+    poco = UnityPoco(("${this.props.ip}", ${this.props.port}), True)
 
-h = poco.agent.hierarchy.dump()
-print("${HierarchyBoundary}")
-print(json.dumps(h))
-print("${HierarchyBoundaryEnd}")
+    try:
+        h = poco.agent.hierarchy.dump()
+    except Exception as e:
+        sys.stderr.write('Error: cannot dump hierarchy from remote device. {}'.format(e.message))
+        sys.stderr.flush()
+    else:
+        print("${HierarchyBoundary}")
+        print(json.dumps(h))
+        print("${HierarchyBoundaryEnd}")
 
-pf = poco.agent.get_debug_profiling_data()
-print("${ProfileDataBoundary}")
-print(json.dumps({'dump': pf['dump'], 'dumpSerialize': pf['handleRpcRequest'] - pf['dump']}))
-print("${ProfileDataBoundaryEnd}")
+    try:
+        pf = poco.agent.get_debug_profiling_data()
+        print("${ProfileDataBoundary}")
+        print(json.dumps({'dump': pf['dump'], 'dumpSerialize': pf['handleRpcRequest'] - pf['dump']}))
+        print("${ProfileDataBoundaryEnd}")
+    except:
+        pass
 
-s, fmt = poco.snapshot(${width})
-print("${ScreenBoundary}")
-print("data:image/" + fmt + ";base64," + s)
-print("${ScreenBoundaryEnd}")
+    try:
+        s, fmt = poco.snapshot(${width})
+    except Exception as e:
+        sys.stderr.write('Error: cannot take screenshot from remote device. {}'.format(e.message))
+        sys.stderr.flush()
+    else:
+        print("${ScreenBoundary}")
+        print("data:image/" + fmt + ";base64," + s)
+        print("${ScreenBoundaryEnd}")
 
-pf = poco.agent.get_debug_profiling_data()
-print("${ProfileDataBoundary}")
-print(json.dumps({'screenshot': pf['screenshot']}))
-print("${ProfileDataBoundaryEnd}")
+    try:
+        pf = poco.agent.get_debug_profiling_data()
+        print("${ProfileDataBoundary}")
+        print(json.dumps({'screenshot': pf['screenshot']}))
+        print("${ProfileDataBoundaryEnd}")
+    except:
+        pass
+
+get_hierarchy_and_screen()
+
+# end-proc #
 `
         this.execPy(code)
     }

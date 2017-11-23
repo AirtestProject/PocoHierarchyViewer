@@ -10,6 +10,7 @@ import _ from 'lodash'
 import IconButton from '../util/IconButton'
 import {DropdownSelectionFixed} from '../util/DropdownSelection'
 
+require('./toastr-config')
 import {globalEventEmitter} from './event'
 import {AndroidDeviceConnector} from './backend/android-connector'
 import {Unity3dDeviceConnector} from './backend/unity3d-connector'
