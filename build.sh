@@ -1,11 +1,9 @@
 sysOS=`uname -s`
 outputDir="build--win32-x64/"
-appExecutable="build--win32-x64/build-.exe"
 zipFile="PocoHierarchyViewer-win32-x64.zip"
 if [ $sysOS == "Darwin" ];then
 	outputDir="build--darwin-x64/"
     zipFile="PocoHierarchyViewer-darwin-x64.zip"
-    appExecutable="build--darwin-x64/build-"
 fi
 
 rm -rf $outputDir 
