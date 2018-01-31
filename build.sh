@@ -1,11 +1,27 @@
-rm -rf build--win32-x64/
-rm PocoHierarchyViewer-win32-x64.zip
+sysOS=`uname -s`
+outputDir="build--win32-x64/"
+appExecutable="build--win32-x64/build-.exe"
+zipFile="PocoHierarchyViewer-win32-x64.zip"
+if [ $sysOS == "Darwin" ];then
+	outputDir="build--darwin-x64/"
+    zipFile="PocoHierarchyViewer-darwin-x64.zip"
+    appExecutable="build--darwin-x64/build-"
+fi
+
+rm -rf $outputDir 
+rm $zipFile
 ./node_modules/gulp/bin/gulp.js build
 ./node_modules/electron-packager/cli.js . --out --overwrite build/
 
-mv build--win32-x64/build-.exe build--win32-x64/start.exe
-mkdir build--win32-x64/lib
-cp -r lib/apk build--win32-x64/lib/
-./tools/zip/zip.exe PocoHierarchyViewer-win32-x64.zip -r build--win32-x64/ 
 
-curl -F file=@PocoHierarchyViewer-win32-x64.zip http://192.168.40.218:23456/downloads/poco
+if [ $sysOS == "Darwin" ];then
+    zip $zipFile -r $outputDir
+else
+    mv $outputDir/build-.exe $outputDir/start.exe
+    mkdir $outputDir/lib
+    cp -r lib/apk $outputDir/lib/
+    ./tools/zip/zip.exe $zipFile -r $outputDir
+fi
+
+curl -F file=@$zipFile http://192.168.40.218:23456/downloads/poco
+
