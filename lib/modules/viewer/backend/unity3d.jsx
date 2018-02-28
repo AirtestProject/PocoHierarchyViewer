@@ -34,6 +34,7 @@ export class Unity3dInspectorView extends InspectorViewBase {
         this.pocoProc = spawn('python', ['-u', '-m', 'poco.drivers.unity3d.repl'])
         this.pocoProc.stdout.on('data', data => {
             data = data.toString()
+            console.log(data)
             this.inBox += data
 
             // parse hierarchy
@@ -88,9 +89,16 @@ export class Unity3dInspectorView extends InspectorViewBase {
     }
 
     refresh(width) {
+        toastr["info"]('Please wait for the screen initializing.')
+        let isWindowsMode = !this.props.useAdbForward && (this.props.ip === 'localhost' || this.props.ip.startsWith('127.0'))
+
         let code = `
 def get_hierarchy_and_screen():
-    poco = UnityPoco(("${this.props.ip}", ${this.props.port}), True)
+    # cache poco instance globally to speed up
+    poco = globals().get('poco')
+    if poco is None:
+        poco = UnityPoco(("${this.props.ip}", ${this.props.port}), ${isWindowsMode ? 'True' : 'False'})
+        globals()['poco'] = poco
 
     try:
         h = poco.agent.hierarchy.dump()
@@ -107,8 +115,9 @@ def get_hierarchy_and_screen():
         print("${ProfileDataBoundary}")
         print(json.dumps({'dump': pf['dump'], 'dumpSerialize': pf['handleRpcRequest'] - pf['dump']}))
         print("${ProfileDataBoundaryEnd}")
-    except:
-        pass
+    except Exception as e:
+        sys.stderr.write('Error: cannot get debug profiling data from remote device. {}'.format(e.message))
+        sys.stderr.flush()
 
     try:
         s, fmt = poco.snapshot(${width})
@@ -125,8 +134,9 @@ def get_hierarchy_and_screen():
         print("${ProfileDataBoundary}")
         print(json.dumps({'screenshot': pf['screenshot']}))
         print("${ProfileDataBoundaryEnd}")
-    except:
-        pass
+    except Exception as e:
+        sys.stderr.write('Error: cannot get debug profiling data from remote device. {}'.format(e.message))
+        sys.stderr.flush()
 
 get_hierarchy_and_screen()
 

@@ -60,7 +60,7 @@ export class Unity3dDeviceConnector extends React.Component {
             ip = 'localhost'
         }
 
-        let view = <Unity3dInspectorView ip={ip} port={iport} />
+        let view = <Unity3dInspectorView ip={ip} port={iport} useAdbForward={this.state.useAdbForward} />
 
         if (this.state.useAdbForward) {
             this.adbClient.forward(this.state.selectedDeviceSerialNo, `tcp:${port}`, `tcp:${port}`)
