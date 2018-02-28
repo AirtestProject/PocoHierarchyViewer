@@ -474,6 +474,7 @@ class ElementPane extends MouseoverComponent {
 
     render() {
         let cursor = this.props.hierarchyCursor
+        let imgFlip = this.props.screenFlipX ? 'scaleY(-1)' : ''
         
         return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}} onContextMenu={this.handleViewAllNodesUnder} >
             <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 99999}} 
@@ -492,7 +493,7 @@ class ElementPane extends MouseoverComponent {
                 }
                 {this.state.mouseover && this.genCoordTips()}
             </div>
-            <img src={this.props.screen} style={{width: '100%'}} />
+            <img src={this.props.screen} style={{width: '100%', transform: imgFlip}} />
         </div>
     }
 }
@@ -710,7 +711,7 @@ export class InspectorPanel extends React.Component {
             {!!tree && <Treebeard data={tree} onToggle={this.handleSelectElement} style={hierarchyTreeStyle} decorators={myDecorators} />}
         </div>
         const elementPane = <ElementPane ref={r => this.ref_elementPane = r} parent={this} elementSelecting={this.state.elementSelecting} hierarchyCursor={cursor} hierarchyTree={tree} 
-                                screen={screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} 
+                                screen={screen} screenWidth={this.props.screenWidth} screenHeight={this.props.screenHeight} screenFlipX={this.props.screenFlipX} 
                                 paneWidth={this.state.elementPaneWidth} paneHeight={this.state.elementPaneWidth * this.props.screenHeight / this.props.screenWidth} />
         const attributePane = <div ref={r => this.ref_attributePane = r}> 
             {!!cursor && <div style={{padding: '3px'}}>
