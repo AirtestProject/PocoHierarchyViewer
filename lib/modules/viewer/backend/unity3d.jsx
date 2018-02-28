@@ -17,6 +17,8 @@ const ScreenBoundary = '-----sCr11n-B0UNdARY-!@#$%^&&*+----'
 const ScreenBoundaryEnd = '-----sCr11n-B0UNdARY-!@#$%^&&*+----1Nd---end---'
 const ProfileDataBoundary = '-----pr0F1Le-B0UNdARY-!@#$%^&&*+----'
 const ProfileDataBoundaryEnd = '-----pr0F1Le-B0UNdARY-!@#$%^&&*+----1Nd---end---'
+const SDKVersionBoundary = '-----sdkVERs1on-B0UNdARY-!@#$%^&&*+----'
+const SDKVersionBoundaryEnd = '-----sdkVERs1on-B0UNdARY-!@#$%^&&*+----1Nd---end---'
 
 
 export class Unity3dInspectorView extends InspectorViewBase {
@@ -27,6 +29,7 @@ export class Unity3dInspectorView extends InspectorViewBase {
             dumpSerialize: 0,
             screenshot: 0,
         }
+        this.state.sdkVersionCode = 'unknown'
         autoBind(this)
 
         this.inBox = ''
@@ -34,7 +37,6 @@ export class Unity3dInspectorView extends InspectorViewBase {
         this.pocoProc = spawn('python', ['-u', '-m', 'poco.drivers.unity3d.repl'])
         this.pocoProc.stdout.on('data', data => {
             data = data.toString()
-            console.log(data)
             this.inBox += data
 
             // parse hierarchy
@@ -66,6 +68,16 @@ export class Unity3dInspectorView extends InspectorViewBase {
                 this.setState({profileData})
                 this.inBox = this.inBox.substring(profileDataEndIndex + ProfileDataBoundaryEnd.length)
             }
+
+            // parse sdk version code
+            let sdkVersionCodeEndIndex = this.inBox.indexOf(SDKVersionBoundaryEnd)
+            if (sdkVersionCodeEndIndex >= 0) {
+                console.log(this.inBox)
+                let sdkVersionCodeStartIndex = this.inBox.indexOf(SDKVersionBoundary)
+                let versionCodeStr = this.inBox.substring(sdkVersionCodeStartIndex + SDKVersionBoundary.length, sdkVersionCodeEndIndex)
+                this.setState({sdkVersionCode: versionCodeStr})
+                this.inBox = this.inBox.substring(sdkVersionCodeEndIndex + SDKVersionBoundaryEnd.length)
+            }
         })
         this.pocoProc.stderr.on('data', data => {
             data = data.toString()
@@ -81,6 +93,7 @@ export class Unity3dInspectorView extends InspectorViewBase {
         })
 
         this.refresh(720)
+        this.getSDKVersion()
     }
 
     execPy(code) {
@@ -144,6 +157,31 @@ get_hierarchy_and_screen()
 `
         this.execPy(code)
     }
+    getSDKVersion() {
+        let isWindowsMode = !this.props.useAdbForward && (this.props.ip === 'localhost' || this.props.ip.startsWith('127.0'))
+        let code = `
+def get_sdk_version():
+    # cache poco instance globally to speed up
+    poco = globals().get('poco')
+    if poco is None:
+        poco = UnityPoco(("${this.props.ip}", ${this.props.port}), ${isWindowsMode ? 'True' : 'False'})
+        globals()['poco'] = poco
+
+    try:
+        version = poco.agent.get_sdk_version()
+    except:
+        pass
+    else:
+        print("${SDKVersionBoundary}")
+        print(version)
+        print("${SDKVersionBoundaryEnd}")
+
+get_sdk_version()
+
+# end-proc #
+`  
+        this.execPy(code)
+    }
     onDisconnect() {
         this.pocoProc.kill()
     }
@@ -152,7 +190,12 @@ get_hierarchy_and_screen()
         return <span style={{marginLeft: '15px'}}>
             <Icon icon='gamepad' size={16} />
             <small>{`${this.props.ip}:${this.props.port}`}</small>
-            <small style={{color: 'grey', marginLeft: '10px'}}>{`dump: ${this.state.profileData.dump}ms  dumpSerialize: ${this.state.profileData.dumpSerialize}ms  screenshot: ${this.state.profileData.screenshot}ms`}</small>
+            <small style={{color: 'grey', marginLeft: '10px'}}>{`
+                [dump: ${this.state.profileData.dump}ms]  
+                [dumpSerialize: ${this.state.profileData.dumpSerialize}ms]  
+                [screenshot: ${this.state.profileData.screenshot}ms]  
+                [sdk-version: ${this.state.sdkVersionCode}]`} 
+            </small>
         </span>
     }
 }
