@@ -101,16 +101,27 @@ export class Unity3dInspectorView extends InspectorViewBase {
         this.pocoProc.stdin.write('\n')
     }
 
+    connectAirtestDevice(devUri) {
+        let code = `
+from airtest.core.api import connect_device
+connect_device('${devUri}')
+`  
+        this.execPy(code)
+    }
+
     refresh(width) {
-        toastr["info"]('Please wait for the screen initializing.')
-        let isWindowsMode = !this.props.useAdbForward && (this.props.ip === 'localhost' || this.props.ip.startsWith('127.0'))
+        let isUnityEditor = this.props.platform === 'windows' && this.props.options.isUnityEditor
+        // 只有windows版的非editor mode 才需要主动connect到device
+        if (this.props.platform === 'windows' && !this.props.options.isUnityEditor) {
+            this.connectAirtestDevice(`Windows:///?title_re=${this.props.options.titleRe}`)
+        }
 
         let code = `
 def get_hierarchy_and_screen():
     # cache poco instance globally to speed up
     poco = globals().get('poco')
     if poco is None:
-        poco = UnityPoco(("${this.props.ip}", ${this.props.port}), ${isWindowsMode ? 'True' : 'False'})
+        poco = UnityPoco(("${this.props.ip}", ${this.props.port}), ${isUnityEditor ? 'True' : 'False'}, connect_default_device=False)
         globals()['poco'] = poco
 
     try:
@@ -158,13 +169,13 @@ get_hierarchy_and_screen()
         this.execPy(code)
     }
     getSDKVersion() {
-        let isWindowsMode = !this.props.useAdbForward && (this.props.ip === 'localhost' || this.props.ip.startsWith('127.0'))
+        let isUnityEditor = this.props.platform === 'windows' && this.props.options.isUnityEditor
         let code = `
 def get_sdk_version():
     # cache poco instance globally to speed up
     poco = globals().get('poco')
     if poco is None:
-        poco = UnityPoco(("${this.props.ip}", ${this.props.port}), ${isWindowsMode ? 'True' : 'False'})
+        poco = UnityPoco(("${this.props.ip}", ${this.props.port}), ${isUnityEditor ? 'True' : 'False'}, connect_default_device=False)
         globals()['poco'] = poco
 
     try:

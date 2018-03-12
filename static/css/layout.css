@@ -910,3 +910,9 @@ h1, h2, h3, h4, h5, h6, p {
   font-feature-settings: 'liga';
 }
 
+.nav-tabs {
+  background-color: #444;
+}
+.nav-tabs > li.active {
+  background-color: #666;
+}
