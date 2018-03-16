@@ -113,7 +113,7 @@ connect_device('${devUri}')
         let isUnityEditor = this.props.platform === 'windows' && this.props.options.isUnityEditor
         // 只有windows版的非editor mode 才需要主动connect到device
         if (this.props.platform === 'windows' && !this.props.options.isUnityEditor) {
-            this.connectAirtestDevice(`Windows:///?title_re=${this.props.options.titleRe}`)
+            this.connectAirtestDevice(`Windows:///?title_re=${this.props.options.titleRe}&class_name=UnityWndClass`)
         }
 
         let code = `

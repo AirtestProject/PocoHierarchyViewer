@@ -156,7 +156,7 @@ export class Unity3dDeviceConnector extends React.Component {
                             </span>}
                         </div>
                     </Tab>
-                    <Tab eventKey={3} title='iOS' style={{padding: '5px'}}>
+                    <Tab eventKey={3} title='iOS & remote' style={{padding: '5px'}}>
                         <div className='text-secondary'>No need to configuration</div>
                     </Tab>
                 </Tabs>
