@@ -86,7 +86,7 @@ export class Unity3dInspectorView extends InspectorViewBase {
         })
         this.pocoProc.on('close', exitCode => {
             if (exitCode !== 0) {
-                let msg = 'This hierarchy viewer require python runtime and poco. Please install poco first by following command.\n"pip install poco --upgrade"'
+                let msg = 'This hierarchy viewer require python runtime and poco. Please install poco first by following command.\n"pip install -U pocoui"'
                 let option = {closeButton: true, timeOut: 0, extendedTimeOut: 0, onclick: null, tapToDismiss: false}
                 toastr["warning"](msg, '', option)
             }
