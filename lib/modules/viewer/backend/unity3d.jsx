@@ -36,7 +36,7 @@ export class Unity3dInspectorView extends InspectorViewBase {
 
         this.inBox = ''
 
-        let python_executable = `${AppResourcePath}/venv-${window.process.platform}/Scripts/python`
+        let python_executable = `${AppResourcePath}/venv-${window.process.platform}/bin/python`
         console.log(python_executable)
         this.pocoProc = spawn(python_executable, ['-u', '-m', 'poco.drivers.unity3d.repl'])
         this.pocoProc.stdout.on('data', data => {

@@ -15,9 +15,9 @@ rm $zipFile
 if [ $sysOS == "Darwin" ];then
 	# make venv
 	VENVDIR="venv-darwin"
-	virtualenv --always-copy $VENVDIR
+	virtualenv $VENVDIR
 	virtualenv --relocatable $VENVDIR
-	$VENVDIR/Scripts/pip.exe install pocoui
+	$VENVDIR/bin/pip install pocoui
 
 	# archive
 	# mkdir $outputDir/lib
@@ -29,7 +29,8 @@ else
 	VENVDIR="venv-win32"
 	virtualenv --always-copy $VENVDIR
 	virtualenv --relocatable $VENVDIR
-	$VENVDIR/Scripts/pip.exe install pywin32 pocoui
+	mv $VENVDIR/Scripts $VENVDIR/bin  # 这个文件夹名字有点怪
+	$VENVDIR/bin/pip install pywin32 pocoui
 
 	# archive
     mv $outputDir/build-.exe $outputDir/start.exe
