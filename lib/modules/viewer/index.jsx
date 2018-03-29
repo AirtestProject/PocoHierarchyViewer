@@ -56,10 +56,13 @@ class MainConnector extends React.Component {
                     <h3>Poco Hierarchy Viewer</h3>
                     <div style={{position: 'absolute', right: 0, top: 0, padding: '4px', fontSize: '12px'}} className='text-secondary'>version: {VERSION}</div>
                     <div>
-                        <span>mode: </span>
-                        <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} />
+                        <span>driver: </span>
+                        <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} btnStyle={{color: 'orange'}}/>
                     </div>
-                    <div style={{position: 'absolute', right: 0, bottom: 0, opacity: 0.5}}><IconButton icon='build' hint='Open developer tools' onClick={this.handleOpenDevTool} /></div>
+                    <div style={{position: 'absolute', right: 0, bottom: 0, opacity: 0.5}}>
+                        <IconButton icon='refresh' hint='refresh' onClick={() => window.location.reload()} />
+                        <IconButton icon='build' hint='Open developer tools' onClick={this.handleOpenDevTool} />
+                    </div>
                 </div>
 
                 <div style={{marginLeft: '15px'}}>
@@ -80,4 +83,5 @@ $(document).ready(function () {
         $('#main').get(0)
     )
 })
+
 

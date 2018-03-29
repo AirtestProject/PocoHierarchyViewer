@@ -29,7 +29,7 @@ else
 	virtualenv --always-copy $VENVDIR
 	virtualenv --relocatable $VENVDIR
 	mv $VENVDIR/Scripts $VENVDIR/bin  # 这个文件夹名字有点怪
-	$VENVDIR/bin/pip install pywin32 pocoui
+	$VENVDIR/bin/python -m pip install pywin32 pocoui
 
 	# archive
     mv $outputDir/build-.exe $outputDir/start.exe

@@ -126,12 +126,14 @@ export class Unity3dDeviceConnector extends React.Component {
             connectDisabled = true
         }
 
+        let ipIsLocalhost = this.state.useAdbForward && this.state.platformSelectionKey === PLATFORM_ANDROID || this.state.platformSelectionKey === PLATFORM_WINDOWS
+
         return <div style={{marginTop: '10px'}}>
             <div style={{width: '50%'}}>
-                {!(this.state.useAdbForward || this.state.platformSelectionKey === PLATFORM_WINDOWS) && 
+                {!ipIsLocalhost && 
                     <div><TinyLabeledInput required valueLink={linkState(this, 'ip')} label='IP' /></div>
                 }
-                {(this.state.useAdbForward || this.state.platformSelectionKey === PLATFORM_WINDOWS) &&
+                {ipIsLocalhost &&
                     <div><TinyLabeledInput readOnly value='localhost' label='IP' /></div>
                 }
                 <div><TinyLabeledInput required valueLink={linkState(this, 'port')} label='Port' /></div>

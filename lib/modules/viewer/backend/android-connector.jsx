@@ -55,9 +55,6 @@ export class AndroidDeviceConnector extends React.Component {
                     {devlist}
                 </div>
             </div>}
-            <div style={{position: 'absolute', left: '15px', bottom: '15px'}}>
-                <IconButton icon='refresh' hint='refresh' onClick={() => window.location.reload()} />
-            </div>
         </div>
     }
 }
