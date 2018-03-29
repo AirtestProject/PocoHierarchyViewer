@@ -20,6 +20,8 @@ const ProfileDataBoundaryEnd = '-----pr0F1Le-B0UNdARY-!@#$%^&&*+----1Nd---end---
 const SDKVersionBoundary = '-----sdkVERs1on-B0UNdARY-!@#$%^&&*+----'
 const SDKVersionBoundaryEnd = '-----sdkVERs1on-B0UNdARY-!@#$%^&&*+----1Nd---end---'
 
+const AppResourcePath = window.process.execPath.indexOf('build--') >= 0 ? `${window.process.resourcesPath}/app` : window.process.cwd()  // 区分一下打包环境和源码开发环境
+
 
 export class Unity3dInspectorView extends InspectorViewBase {
     constructor(props) {
@@ -34,7 +36,9 @@ export class Unity3dInspectorView extends InspectorViewBase {
 
         this.inBox = ''
 
-        this.pocoProc = spawn('python', ['-u', '-m', 'poco.drivers.unity3d.repl'])
+        let python_executable = `${AppResourcePath}/venv-${window.process.platform}/Scripts/python`
+        console.log(python_executable)
+        this.pocoProc = spawn(python_executable, ['-u', '-m', 'poco.drivers.unity3d.repl'])
         this.pocoProc.stdout.on('data', data => {
             data = data.toString()
             this.inBox += data

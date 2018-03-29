@@ -16,6 +16,7 @@ import {AndroidDeviceConnector} from './backend/android-connector'
 import {Unity3dDeviceConnector} from './backend/unity3d-connector'
 import {MODE_ANDROID_APP, MODE_UNITY} from './connector-modes'
 
+import {VERSION} from './version'
 
 class MainConnector extends React.Component {
     constructor(props) {
@@ -53,7 +54,7 @@ class MainConnector extends React.Component {
             {!this.state.inspectorViewInstance && <div>
                 <div style={{backgroundColor: '#222', padding: '5px 15px', position: 'relative'}}>
                     <h3>Poco Hierarchy Viewer</h3>
-                    <div style={{position: 'absolute', right: 0, top: 0, padding: '4px', fontSize: '12px'}} className='text-secondary'>version: 1.0.0</div>
+                    <div style={{position: 'absolute', right: 0, top: 0, padding: '4px', fontSize: '12px'}} className='text-secondary'>version: {VERSION}</div>
                     <div>
                         <span>mode: </span>
                         <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} />

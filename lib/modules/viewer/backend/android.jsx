@@ -12,6 +12,11 @@ const PocoServicePackageTest = 'com.netease.open.pocoservice.test'
 const PocoServiceApk = 'pocoservice-debug.apk'
 const PocoServiceApkTest = 'pocoservice-debug-androidTest.apk'
 
+const AppResourcePath = window.process.execPath.indexOf('build--') >= 0 ? `${window.process.resourcesPath}/app` : window.process.cwd()  // 区分一下打包环境和源码开发环境
+const PocoServiceApkPath = `${AppResourcePath}/lib/apk/${PocoServiceApk}`
+const PocoServiceApkTestPath = `${AppResourcePath}/lib/apk/${PocoServiceApkTest}`
+
+
 const Promise = window.require('bluebird')
 const path = window.require('path')
 const ApkReader = window.require('node-apk-parser')
@@ -62,30 +67,30 @@ export class AndroidInspectorView extends InspectorViewBase {
         let testApkShouldReinstall = false
         adbClient.shell(sn, `am force-stop ${PocoServicePackage}`)
             // 安装，如果主apk重装了，那么test apk也要重装
-            .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))            
+            .then(() => checkInstalled(sn, PocoServiceApkPath, PocoServicePackage))            
             .then(installed => {
                 if (!installed) {
                     console.log('poco service not installed.')
                     testApkShouldReinstall = true
                     return Promise.resolve()
-                        .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApk}`, `/data/local/tmp/${PocoServiceApk}`))
+                        .then(() => adbClient.push(sn, PocoServiceApkPath, `/data/local/tmp/${PocoServiceApk}`))
                         .delay(1000)
                         .then(() => adbClient.shell(sn, `pm install "/data/local/tmp/${PocoServiceApk}"`))
-                        .then(() => ensureInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))
-                        .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApk}`, PocoServicePackage))
+                        .then(() => ensureInstalled(sn, PocoServiceApkPath, PocoServicePackage))
+                        .then(() => checkInstalled(sn, PocoServiceApkPath, PocoServicePackage))
                         .then(installed => {
                             console.log('poco service installed?', installed)
                         })
                 }
             })
-            .then(() => checkInstalled(sn, `lib/apk/${PocoServiceApkTest}`, PocoServicePackageTest))
+            .then(() => checkInstalled(sn, PocoServiceApkTestPath, PocoServicePackageTest))
             .then(installed => {
                 if (!installed || testApkShouldReinstall) {
                     return Promise.resolve()
-                        .then(() => adbClient.push(sn, `lib/apk/${PocoServiceApkTest}`, `/data/local/tmp/${PocoServiceApkTest}`))
+                        .then(() => adbClient.push(sn, PocoServiceApkTestPath, `/data/local/tmp/${PocoServiceApkTest}`))
                         .delay(500)
                         .then(() => adbClient.shell(sn, `pm install -r "/data/local/tmp/${PocoServiceApkTest}"`))
-                        .then(() => ensureInstalled(sn, `lib/apk/${PocoServiceApkTest}`, PocoServicePackageTest))
+                        .then(() => ensureInstalled(sn, PocoServiceApkTestPath, PocoServicePackageTest))
                 }
             })
 

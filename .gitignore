@@ -10,3 +10,5 @@ venv
 .*.swp
 *.ipc
 node_modules/
+venv-win32/
+venv-darwin/

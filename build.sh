@@ -13,11 +13,29 @@ rm $zipFile
 
 
 if [ $sysOS == "Darwin" ];then
+	# make venv
+	VENVDIR="venv-darwin"
+	virtualenv --always-copy $VENVDIR
+	virtualenv --relocatable $VENVDIR
+	$VENVDIR/Scripts/pip.exe install pocoui
+
+	# archive
+	# mkdir $outputDir/lib
+	# cp -r lib/apk $outputDir/lib/
+	# cp -r $VENVDIR $outputDir/
     zip $zipFile -r $outputDir
 else
+	# make venv
+	VENVDIR="venv-win32"
+	virtualenv --always-copy $VENVDIR
+	virtualenv --relocatable $VENVDIR
+	$VENVDIR/Scripts/pip.exe install pywin32 pocoui
+
+	# archive
     mv $outputDir/build-.exe $outputDir/start.exe
-    mkdir $outputDir/lib
-    cp -r lib/apk $outputDir/lib/
+    # mkdir $outputDir/lib
+    # cp -r lib/apk $outputDir/lib/
+    # cp -r venv-win32 $outputDir/
     ./tools/zip/zip.exe $zipFile -r $outputDir
 fi
 
