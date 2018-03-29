@@ -18,7 +18,7 @@ if [ $sysOS == "Darwin" ];then
 	rm -rf $VENVDIR
 	virtualenv $VENVDIR
 	virtualenv --relocatable $VENVDIR
-	$VENVDIR/bin/pip install pocoui
+	$VENVDIR/bin/python -m pip install pocoui
 
 	# archive
     zip $zipFile -r $outputDir
