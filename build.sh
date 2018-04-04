@@ -21,6 +21,7 @@ if [ $sysOS == "Darwin" ];then
 	$VENVDIR/bin/python -m pip install pocoui
 
 	# archive
+	mv $outputDir "PocoHierarchyViewer-$outputDir"
     zip $zipFile -r $outputDir
 else
 	# make venv
@@ -33,6 +34,7 @@ else
 
 	# archive
     mv $outputDir/build-.exe $outputDir/start.exe
+    mv $outputDir "PocoHierarchyViewer-$outputDir"
     ./tools/zip/zip.exe $zipFile -r $outputDir
 fi
 
