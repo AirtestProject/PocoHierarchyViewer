@@ -13,8 +13,8 @@ import {DropdownSelectionFixed} from '../util/DropdownSelection'
 require('./toastr-config')
 import {globalEventEmitter} from './event'
 import {AndroidDeviceConnector} from './backend/android-connector'
-import {Unity3dDeviceConnector} from './backend/unity3d-connector'
-import {MODE_ANDROID_APP, MODE_UNITY} from './connector-modes'
+import {Unity3dDeviceConnector} from './backend/stdpoco-connector'
+import {MODE_ANDROID_APP, MODE_STDPOCO} from './connector-modes'
 
 import {VERSION} from './version'
 
@@ -37,6 +37,7 @@ class MainConnector extends React.Component {
 
     componentDidMount() {
         globalEventEmitter.on('disconnect-device', this.disconnectDevice)
+        document.title = `PocoHierarchyViwer - ${VERSION}`
     }
     componentWillUnmount() {
         globalEventEmitter.removeListener('disconnect-device', this.disconnectDevice)
@@ -57,7 +58,7 @@ class MainConnector extends React.Component {
                     <div style={{position: 'absolute', right: 0, top: 0, padding: '4px', fontSize: '12px'}} className='text-secondary'>version: {VERSION}</div>
                     <div>
                         <span>driver: </span>
-                        <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_UNITY]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} btnStyle={{color: 'orange'}}/>
+                        <DropdownSelectionFixed selections={[MODE_ANDROID_APP, MODE_STDPOCO]} valueLink={linkState(this, 'connectorMode')} onSelect={this.handleModeChanged} btnStyle={{color: 'orange'}}/>
                     </div>
                     <div style={{position: 'absolute', right: 0, bottom: 0, opacity: 0.5}}>
                         <IconButton icon='refresh' hint='refresh' onClick={() => window.location.reload()} />
@@ -67,7 +68,7 @@ class MainConnector extends React.Component {
 
                 <div style={{marginLeft: '15px'}}>
                     {this.state.connectorMode === MODE_ANDROID_APP && <AndroidDeviceConnector onConnectDevice={this.connectDevice} />}
-                    {this.state.connectorMode === MODE_UNITY && <Unity3dDeviceConnector onConnectDevice={this.connectDevice}/>}
+                    {this.state.connectorMode === MODE_STDPOCO && <Unity3dDeviceConnector onConnectDevice={this.connectDevice}/>}
                 </div>
             </div>}
 

@@ -8,7 +8,7 @@ import {Tabs, Tab} from 'react-bootstrap'
 import IconButton from '../../util/IconButton'
 import {TinyLabeledInput, Checkbox} from '../../util/Form'
 
-import {Unity3dInspectorView} from './unity3d'
+import {Unity3dInspectorView} from './stdpoco'
 import {AdbDevices} from '../utils/adb-devices'
 
 const adb = window.require('adbkit')
@@ -29,9 +29,9 @@ class DevicesTracker extends AdbDevices {
 }
 
 
-const PLATFORM_ANDROID = 1
-const PLATFORM_WINDOWS = 2
-const PLATFORM_IOS = 3
+const PLATFORM_REMOTE = 1
+const PLATFORM_ANDROID = 2
+
 
 
 export class Unity3dDeviceConnector extends React.Component {
@@ -44,7 +44,6 @@ export class Unity3dDeviceConnector extends React.Component {
             port: initialState.port || '5001',
             useAdbForward: initialState.useAdbForward || false,
             connectUnityWindowsAppUnityEditorMode: initialState.connectUnityWindowsAppUnityEditorMode || false,
-            windowsTitleRe: initialState.windowsTitleRe || '^.*unity3d game.*$',
             platformSelectionKey: initialState.platformSelectionKey || 1,
 
             // adb forward 模式下才有用
@@ -76,11 +75,6 @@ export class Unity3dDeviceConnector extends React.Component {
                         this.props.onConnectDevice(view)
                     })
             }
-        } else if (this.state.platformSelectionKey === PLATFORM_WINDOWS) {
-            ip = 'localhost'
-            platform = 'windows'
-            options.titleRe = this.state.windowsTitleRe
-            options.isUnityEditor = this.state.connectUnityWindowsAppUnityEditorMode
         } else {
             platform = 'any'
         }
@@ -111,22 +105,25 @@ export class Unity3dDeviceConnector extends React.Component {
     }
 
     render() {
-        let devlist = _.map(this.state.devices, dev => {
-            let devInfo = this.state.devices[dev.id]
-            let selected = this.state.selectedDeviceSerialNo === dev.id
-            let btnClass = selected ? 'btn btn-xs btn-primary' : ''
-            return <div key={dev.id}>
-                <IconButton btnClass={btnClass} text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={() => this.setState({selectedDeviceSerialNo: dev.id})} />
-                <span style={{marginLeft: '10px'}}>{selected ? 'selected' : ''}</span>
-            </div>
-        })
+        let devlist = null
+        if (this.state.useAdbForward) {
+            devlist = _.map(this.state.devices, dev => {
+                let devInfo = this.state.devices[dev.id]
+                let selected = this.state.selectedDeviceSerialNo === dev.id
+                let btnClass = selected ? 'btn btn-xs btn-primary' : ''
+                return <div key={dev.id}>
+                    <IconButton btnClass={btnClass} text={`${dev.model}  [${dev.id}]  (${dev.type})`} onClick={() => this.setState({selectedDeviceSerialNo: dev.id})} />
+                    <span style={{marginLeft: '10px'}}>{selected ? 'selected' : ''}</span>
+                </div>
+            })
+        }
 
         let connectDisabled = false
         if (this.state.useAdbForward && (this.state.devices.length === 0 || !this.state.selectedDeviceSerialNo)) {
             connectDisabled = true
         }
 
-        let ipIsLocalhost = this.state.useAdbForward && this.state.platformSelectionKey === PLATFORM_ANDROID || this.state.platformSelectionKey === PLATFORM_WINDOWS
+        let ipIsLocalhost = this.state.useAdbForward && this.state.platformSelectionKey === PLATFORM_ANDROID
 
         return <div style={{marginTop: '10px'}}>
             <div style={{width: '50%'}}>
@@ -140,26 +137,18 @@ export class Unity3dDeviceConnector extends React.Component {
                 
                 <div style={{height: '10px'}}></div>
                 <Tabs activeKey={this.state.platformSelectionKey} onSelect={this.handleSelectPlatform} id="platform-selection-tab">
-                    <Tab eventKey={1} title="Android" style={{padding: '5px'}}>
+                    <Tab eventKey={1} title='Remote' style={{padding: '5px'}}>
+                        <div className='text-secondary'>Connect to device directly.</div>
+                    </Tab>
+                    <Tab eventKey={2} title="Android" style={{padding: '5px'}}>
                         <div><Checkbox checkedLink={linkState(this, 'useAdbForward')} label='Use adb forward' /></div>
                         {this.state.useAdbForward && <div style={{paddingLeft: '20px'}}>
                             {devlist.length > 0 && <div>
                                 <div style={{marginTop: '10px', color: '#aaaaaa'}}>Select one of the following devices to forward port.</div>
                                 <div>{devlist}</div>
                             </div>}
-                            {devlist.length === 0 && <div style={{marginTop: '10px', color: 'orangered'}}>Error: No device available. Connect at lease one Android device to this PC/mac or input the IP address of your mobile device.</div>}
+                            {devlist.length === 0 && <div style={{marginTop: '10px', color: 'orangered'}}>Error: No device available. Connect at lease one Android device to this PC/mac or input the IP address of your mobile device. Or use REMOTE mode to connect directly.</div>}
                         </div>}
-                    </Tab>
-                    <Tab eventKey={2} title="Windows" style={{padding: '5px'}}>
-                        <div>
-                            <div><Checkbox checkedLink={linkState(this, 'connectUnityWindowsAppUnityEditorMode')} label='Unity editor mode' /></div>
-                            {!this.state.connectUnityWindowsAppUnityEditorMode && <span>
-                                <div><TinyLabeledInput required valueLink={linkState(this, 'windowsTitleRe')} label='Window title matcher regex' /></div>
-                            </span>}
-                        </div>
-                    </Tab>
-                    <Tab eventKey={3} title='iOS & remote' style={{padding: '5px'}}>
-                        <div className='text-secondary'>No need to configuration</div>
                     </Tab>
                 </Tabs>
 

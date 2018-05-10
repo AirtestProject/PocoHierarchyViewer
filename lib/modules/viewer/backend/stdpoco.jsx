@@ -40,7 +40,8 @@ export class Unity3dInspectorView extends InspectorViewBase {
 
     refreshScreen(width) {
         return this.screen.getScreen(width).then(res => {
-            var screenData = "data:image/" + res[1] + ";base64," + res[0]
+            let [b64img, fmt] = res
+            let screenData = `data:image/${fmt};base64,${b64img}`
             this.setState({screen: screenData})
         })
     }

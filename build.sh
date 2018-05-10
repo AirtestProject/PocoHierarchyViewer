@@ -12,26 +12,13 @@ rm $zipFile
 ./node_modules/electron-packager/cli.js . --out --overwrite PocoHierarchyViewer-build/
 
 if [ $sysOS == "Darwin" ];then
-    # make venv
-    VENVDIR="venv-darwin"
-    rm -rf $VENVDIR
-    virtualenv $VENVDIR
-    virtualenv --relocatable $VENVDIR
-    $VENVDIR/bin/python -m pip install pocoui
-
     # archive
     zip $zipFile -r $outputDir
 else
-    # make venv
-    VENVDIR="venv-win32"
-    rm -rf $VENVDIR
-    virtualenv --always-copy $VENVDIR
-    virtualenv --relocatable $VENVDIR
-    mv $VENVDIR/Scripts $VENVDIR/bin  # 这个文件夹名字有点怪
-    $VENVDIR/bin/python -m pip install pywin32 pocoui
+    # rename starter
+    mv $outputDir/build-.exe $outputDir/start.exe
 
     # archive
-    mv $outputDir/build-.exe $outputDir/start.exe
     ./tools/zip/zip.exe $zipFile -r $outputDir
 fi
 
