@@ -624,7 +624,9 @@ export class InspectorPanel extends React.Component {
     }
     handleRefreshRequest() {
         this.ref_elementPane.setState({refreshing: true, screen: ''})
-        this.props.onRefreshRequest(this.state.elementPaneWidth)
+        if (this.props.onRefreshRequest) {
+            this.props.onRefreshRequest(this.state.elementPaneWidth)
+        }
     }
     handlePasteHierarchyRequest() {
         this.setState({showPastePanel: true})
@@ -659,7 +661,7 @@ export class InspectorPanel extends React.Component {
         // reset elementPaneWidth to default width when screen rotation changed
         if (nextProps.screenHeight !== this.props.screenHeight || nextProps.screenWidth !== this.props.screenWidth) {
             if (nextProps.screenHeight > nextProps.screenWidth) {
-                this.setState({elementPaneWidth: 405})
+                this.setState({elementPaneWidth: 380})
             } else {
                 this.setState({elementPaneWidth: 720})
             }
@@ -672,6 +674,11 @@ export class InspectorPanel extends React.Component {
         $(this.ref_attributePane).on('mousewheel', evt => {
             evt.stopImmediatePropagation()
         })
+        if (this.props.screenHeight > this.props.screenWidth) {
+            this.setState({elementPaneWidth: 380})
+        } else {
+            this.setState({elementPaneWidth: 720})
+        }
     }
     componentWillUnmount() {
         $(this.ref_hierarchyPane).unbind('mousewheel')
@@ -723,14 +730,14 @@ export class InspectorPanel extends React.Component {
         return <div>
             <div style={{height: '25px', padding: '2px 10px'}}>
                 {this.props.customToolbar}
-                {toolBarButton('mdi-navigation-refresh', '刷新', this.handleRefreshRequest)}
-                {toolBarButton('content_paste', '手动输入hierarchy', this.handlePasteHierarchyRequest)}
+                {!!this.props.onRefreshRequest && toolBarButton('mdi-navigation-refresh', 'refresh', this.handleRefreshRequest)}
+                {toolBarButton('content_paste', 'input hierarchy manually', this.handlePasteHierarchyRequest)}
                 {false && toolBarButton(this.state.hierarchyShowInvisibleNode ? 'mdi-action-visibility': 'mdi-action-visibility-off', '显示invisible节点', this.toggleShowInvisibileNode, this.state.hierarchyShowInvisibleNode ? 'color-primary' : '-')}
             </div>
             <div style={{position: 'absolute', top: '25px', right: 0, bottom: 0, left: 0}}>
                 {function () {
                     if (this.props.screenHeight > this.props.screenWidth) {
-                        return <SplitPane split='vertical' defaultSize={405} onChange={this.handleMainSplitPaneResized} pane1Style={{overflow: 'hidden'}} pane2Style={{overflow: 'auto'}} >
+                        return <SplitPane split='vertical' defaultSize={380} onChange={this.handleMainSplitPaneResized} pane1Style={{overflow: 'hidden'}} pane2Style={{overflow: 'auto'}} >
                                 {elementPane}
                             <SplitPane split='vertical' defaultSize={450}>
                                 {hierarchyPane}
