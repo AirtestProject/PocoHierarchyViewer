@@ -6,7 +6,7 @@ var watchify = require('gulp-watchify');
 var sourcemap = require('gulp-sourcemaps')
 
 
-var jsxpath = 'lib/modules/**/*.jsx';
+var jsxpath = 'lib/modules/**/*.js*';
 var jsxoutput = 'lib/babel-build/';
 var bundleoutput = 'lib/js-build/';
 var entries = [
