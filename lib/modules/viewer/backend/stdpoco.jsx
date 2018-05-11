@@ -47,41 +47,56 @@ export class Unity3dInspectorView extends InspectorViewBase {
     }
 
     refreshDumper() {
-        return this.dumper.dumpHierarchy().then(jsonHierarchy => {
-            this.setState({hierarchyTree: jsonHierarchy})
+        return this.dumper.dumpHierarchy().then(hierarchyTree => {
+            this.setState({hierarchyTree})
         })
     }
 
     getSDKVersion() {
-        this.pocoAgent.getSdkVersion().then(sdkVersion => {
-            this.setState({sdkVersionCode: sdkVersion})
-        })
+        this.pocoAgent.getSdkVersion()
+            .then(sdkVersionCode => {
+                this.setState({sdkVersionCode})
+            })
+            .catch(err => {})  // 没有这个方法就忽略
     }
 
     refresh(width) {
-        this.refreshDumper().then(() => {
-            return this.pocoAgent.getDebugProfiling_data().then(res => {
-                this.setState({
-                    profileData: {
-                        dump: res.dump,
-                        dumpSerialize: res.handleRpcRequest - res.dump,
-                        screenshot: 0
-                    }
-                })
+        this.refreshDumper()
+            .then(() => {
+                return this.pocoAgent.getDebugProfiling_data()
+                    .then(res => {
+                        this.setState({
+                            profileData: {
+                                dump: res.dump,
+                                dumpSerialize: res.handleRpcRequest - res.dump,
+                                screenshot: 0
+                            }
+                        })
+                    })
+                    .catch(err => {})  // 没有这个方法就忽略
             })
-        }).then(() => {
-            return this.refreshScreen(width)
-        }).then(() => {
-            return this.pocoAgent.getDebugProfiling_data().then(res => {
-                this.setState({
-                    profileData: {
-                        dump: this.state.profileData['dump'],
-                        dumpSerialize: this.state.profileData['dumpSerialize'],
-                        screenshot: res.screenshot
-                    }
-                })
+            .catch(err => {
+                alert(err.message + '\nPlease check your poco-sdk status.\n(远程应用RPC调用失败，请检查SDK是否接入成功)')
             })
-        })
+            .then(() => {
+                return this.refreshScreen(width)
+            })
+            .then(() => {
+                return this.pocoAgent.getDebugProfiling_data()
+                    .then(res => {
+                        this.setState({
+                            profileData: {
+                                dump: this.state.profileData['dump'],
+                                dumpSerialize: this.state.profileData['dumpSerialize'],
+                                screenshot: res.screenshot
+                            }
+                        })
+                    })
+                    .catch(err => {})  // 没有这个方法就忽略
+            })
+            .catch(err => {
+                alert(err.message + '\nPlease check your poco-sdk status.\n(远程应用RPC调用失败，请检查SDK是否接入成功)')
+            })
     }
 
     onDisconnect() {
