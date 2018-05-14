@@ -13,7 +13,7 @@ import {DropdownSelectionFixed} from '../util/DropdownSelection'
 require('./toastr-config')
 import {globalEventEmitter} from './event'
 import {AndroidDeviceConnector} from './backend/android-connector'
-import {Unity3dDeviceConnector} from './backend/stdpoco-connector'
+import {StdPocoDeviceConnector} from './backend/stdpoco-connector'
 import {MODE_ANDROID_APP, MODE_STDPOCO} from './connector-modes'
 
 import {VERSION} from './version'
@@ -68,7 +68,7 @@ class MainConnector extends React.Component {
 
                 <div style={{marginLeft: '15px'}}>
                     {this.state.connectorMode === MODE_ANDROID_APP && <AndroidDeviceConnector onConnectDevice={this.connectDevice} />}
-                    {this.state.connectorMode === MODE_STDPOCO && <Unity3dDeviceConnector onConnectDevice={this.connectDevice}/>}
+                    {this.state.connectorMode === MODE_STDPOCO && <StdPocoDeviceConnector onConnectDevice={this.connectDevice}/>}
                 </div>
             </div>}
 

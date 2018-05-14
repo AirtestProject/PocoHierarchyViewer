@@ -33,17 +33,15 @@ const PLATFORM_REMOTE = 1
 const PLATFORM_ANDROID = 2
 
 
-
-export class Unity3dDeviceConnector extends React.Component {
+export class StdPocoDeviceConnector extends React.Component {
     constructor(props) {
         super(props)
-        let initialState = JSON.parse(localStorage.getItem('Unity3dDeviceConnector.default.initialState') || "{}")
+        let initialState = JSON.parse(localStorage.getItem('StdPocoDeviceConnector.default.initialState') || "{}")
         console.log()
         this.state = {
             ip: initialState.ip || 'localhost',
             port: initialState.port || '5001',
             useAdbForward: initialState.useAdbForward || false,
-            connectUnityWindowsAppUnityEditorMode: initialState.connectUnityWindowsAppUnityEditorMode || false,
             platformSelectionKey: initialState.platformSelectionKey || 1,
 
             // adb forward 模式下才有用
@@ -79,7 +77,7 @@ export class Unity3dDeviceConnector extends React.Component {
             platform = 'any'
         }
 
-        localStorage.setItem('Unity3dDeviceConnector.default.initialState', JSON.stringify(this.state))
+        localStorage.setItem('StdPocoDeviceConnector.default.initialState', JSON.stringify(this.state))
 
         let view = <Unity3dInspectorView ip={ip} port={iport} platform={platform} options={options} />
         this.props.onConnectDevice(view)
@@ -127,18 +125,25 @@ export class Unity3dDeviceConnector extends React.Component {
 
         return <div style={{marginTop: '10px'}}>
             <div style={{width: '50%'}}>
+                <div className='text-secondary' style={{fontSize: '12px'}}>
+                    Please input the ip address of your phone, not the PC/mac.
+                </div>
                 {!ipIsLocalhost && 
-                    <div><TinyLabeledInput required valueLink={linkState(this, 'ip')} label='IP' /></div>
+                    <div style={{marginBottom: '15px'}}><TinyLabeledInput required valueLink={linkState(this, 'ip')} label='IP' /></div>
                 }
                 {ipIsLocalhost &&
-                    <div><TinyLabeledInput readOnly value='localhost' label='IP' /></div>
+                    <div style={{marginBottom: '15px'}}><TinyLabeledInput readOnly value='localhost' label='IP' /></div>
                 }
-                <div><TinyLabeledInput required valueLink={linkState(this, 'port')} label='Port' /></div>
+
+                <div className='text-secondary' style={{fontSize: '12px'}}>
+                    This port is the poco-sdk in your game/app listens on, not the port of adb server. For StdPoco, the default port is 15004. For Unity3D, is 5001.
+                </div>
+                <div style={{marginBottom: '15px'}}><TinyLabeledInput required valueLink={linkState(this, 'port')} label='Port' /></div>
                 
                 <div style={{height: '10px'}}></div>
                 <Tabs activeKey={this.state.platformSelectionKey} onSelect={this.handleSelectPlatform} id="platform-selection-tab">
                     <Tab eventKey={1} title='Remote' style={{padding: '5px'}}>
-                        <div className='text-secondary'>Connect to device directly.</div>
+                        <div className='text-secondary'>Connect to device directly through network. Including Android, Windows, iOS, UnityEditor. Please ensure your phone and this PC/mac locates in the same subnet.</div>
                     </Tab>
                     <Tab eventKey={2} title="Android" style={{padding: '5px'}}>
                         <div><Checkbox checkedLink={linkState(this, 'useAdbForward')} label='Use adb forward' /></div>

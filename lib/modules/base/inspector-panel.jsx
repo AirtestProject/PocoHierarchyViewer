@@ -33,6 +33,7 @@ const NodeType2IconName = {
     VBox: ['view_stream', ''],
     HBox: ['view_column', ''],
 
+    ListView: ['format_list_bulleted', ''],
     ScrollView: ['format_list_bulleted', ''],
     ScrollRect: ['format_list_bulleted', ''],
     ScrollBar: ['clear_all', ''],
@@ -266,9 +267,9 @@ class NodeMask extends React.Component {
         let anchorPos = {left: pos[0] * this.props.paneWidth - 1 + 'px', top: pos[1] * this.props.paneHeight - 1 + 'px'}  // 这点往左上角偏移一个像素
 
         return <div>
-            <div ref={r => this.ref_infoTips = r} style={style}>
+            {this.props.showLable && <div ref={r => this.ref_infoTips = r} style={style}>
                 <NodeInfoTips node={node} /> 
-            </div>
+            </div>}
             <div style={Object.assign({position: 'absolute', border: `1px solid ${stroke}`, zIndex: 100, backgroundColor: fill}, nodeBounds)}></div>
             <div style={Object.assign({position: 'absolute', border: '2px solid orangered', zIndex: 101, width: '3px', height: '3px'}, anchorPos)}></div>
         </div>
@@ -368,6 +369,7 @@ class ElementPane extends MouseoverComponent {
 
             elementDetectedAll: [],
             underneathElementsTipsOffsets: [0, 0],
+            showFocusOffset: false,  // 是否显示当前光标位置相对于选定UI的focus值
         }, this.superState())
         autoBind(this)
         this._findOverlayedNode = _.throttle(this._findOverlayedNode, 50, {trailing: false})
@@ -451,7 +453,20 @@ class ElementPane extends MouseoverComponent {
                 delete bounds.top
             }
         }
-        let coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`${parseInt(tipsX / scaleFactorX * this.props.screenWidth)}, ${parseInt(tipsY / scaleFactorY * this.props.screenHeight)}`}</div>
+        let coordTips = null
+        if (this.state.showFocusOffset && this.props.hierarchyCursor) {
+            let [px, py] = [tipsX / scaleFactorX, tipsY / scaleFactorY]
+            let [anchorX, anchorY] = this.props.hierarchyCursor.payload.anchorPoint
+            let [cursorX, cursorY] = this.props.hierarchyCursor.payload.pos
+            let [cursorW, cursorH] = this.props.hierarchyCursor.payload.size
+            let [originX, originY] = [cursorX - anchorX * cursorW, cursorY - anchorY * cursorH]
+            let [focusX, focusY] = [(px - originX) / cursorW, (py - originY) / cursorH]
+            coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`focus on: ${focusX.toFixed(2)}, ${focusY.toFixed(2)}`}</div>
+        } else {
+            let x = parseInt(tipsX / scaleFactorX * this.props.screenWidth)
+            let y = parseInt(tipsY / scaleFactorY * this.props.screenHeight)
+            coordTips = <div ref={r => this.ref_coordTips = r} style={Object.assign(style, bounds)}>{`${x}, ${y}`}</div>
+        }
         return coordTips
     }
     componentWillReceiveProps(nextProps) {
@@ -460,6 +475,28 @@ class ElementPane extends MouseoverComponent {
     componentDidMount() {
         if (this.props.screen) {
             this.setState({refreshing: false})
+        }
+        $(document).bind('keydown', this.handleKeydown)
+        $(document).bind('keyup', this.handleKeyup)
+    }
+    componentWillUnmount() {
+        $(document).unbind('keydown', this.handleKeydown)
+        $(document).unbind('keyup', this.handleKeyup)
+    }
+    handleKeydown(evt) {
+        if (evt.originalEvent.repeat) {
+            return
+        }
+        if (!this.state.showFocusOffset && (evt.key === 'Control' || evt.key === 'Alt')) {
+            this.setState({showFocusOffset: true})
+        }
+    }
+    handleKeyup(evt) {
+        if (evt.originalEvent.repeat) {
+            return
+        }
+        if (this.state.showFocusOffset && (evt.key === 'Control' || evt.key === 'Alt')) {
+            this.setState({showFocusOffset: false})
         }
     }
     handleViewAllNodesUnder(evt) {
@@ -475,8 +512,9 @@ class ElementPane extends MouseoverComponent {
     render() {
         let cursor = this.props.hierarchyCursor
         let imgFlip = this.props.screenFlipX ? 'scaleY(-1)' : ''
+        let mousePointerStyle = this.state.showFocusOffset ? 'crosshair' : ''
         
-        return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}} onContextMenu={this.handleViewAllNodesUnder} >
+        return <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, cursor: mousePointerStyle}} onContextMenu={this.handleViewAllNodesUnder} >
             <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, zIndex: 99999}} 
                 onMouseMove={this.handleAutoDetectingElement} 
                 onMouseOut={this.handleClearAutuDetectingElementMask} 
@@ -485,11 +523,14 @@ class ElementPane extends MouseoverComponent {
                 >
             </div>
             {this.state.refreshing && <div style={{position: 'absolute', left: 0, right: 0, top: '40%', height: '90px', lineHeight: '90px', textAlign: 'center', fontSize: '26px', zIndex: 10000, backgroundColor: 'rgba(0,0,0,0.5)'}}>处理中...</div>}
-            {this.state.elementDetectedAll.length > 0 && <NodesSelectionContextMenu parent={this} offset={this.state.underneathElementsTipsOffsets} elementDetectedAllLink={linkState(this, 'elementDetectedAll')} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} />}
+            {!this.state.showFocusOffset && this.state.elementDetectedAll.length > 0 && 
+                <NodesSelectionContextMenu parent={this} offset={this.state.underneathElementsTipsOffsets} elementDetectedAllLink={linkState(this, 'elementDetectedAll')} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} />
+            }
             <div ref={r => this.ref_imgMask = r} style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0}}>
-                {!!cursor && <NodeMask node={cursor} refImgMaskLayer={this.ref_imgMask} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} zIndex={200000} />}
-                {this.state.mouseover && !!this.state.elementDetected && 
-                    <NodeMask node={this.state.elementDetected} mask={{fill: 'rgba(0,128,255,0.3)'}} refImgMaskLayer={this.ref_imgMask} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} zIndex={10000} />
+                {!!cursor && <NodeMask node={cursor} refImgMaskLayer={this.ref_imgMask} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} zIndex={200000} showLable={!this.state.showFocusOffset} />
+                }
+                {this.state.mouseover && !!this.state.elementDetected &&
+                    <NodeMask node={this.state.elementDetected} mask={{fill: 'rgba(0,128,255,0.3)'}} refImgMaskLayer={this.ref_imgMask} paneWidth={this.props.paneWidth} paneHeight={this.props.paneHeight} zIndex={10000} showLable={!this.state.showFocusOffset} />
                 }
                 {this.state.mouseover && this.genCoordTips()}
             </div>
