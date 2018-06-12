@@ -1,4 +1,5 @@
-deploy_server1:
+trigger_build:
+    stage: deploy
     script: 
         - ssh ${CI_USERNAME}@${CI_HOST} "cd /home/${CI_PROJECT_NAME} &&
             git checkout master &&
