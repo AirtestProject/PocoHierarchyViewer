@@ -152,7 +152,7 @@ export class StdPocoDeviceConnector extends React.Component {
                                 <div style={{marginTop: '10px', color: '#aaaaaa'}}>Select one of the following devices to forward port.</div>
                                 <div>{devlist}</div>
                             </div>}
-                            {devlist.length === 0 && <div style={{marginTop: '10px', color: 'orangered'}}>Error: No device available. Connect at lease one Android device to this PC/mac or input the IP address of your mobile device. Or use REMOTE mode to connect directly.</div>}
+                            {devlist.length === 0 && <div style={{marginTop: '10px', color: 'orangered'}}>Error: No device available. Connect at least one Android device to this PC/mac or input the IP address of your mobile device. Or use REMOTE mode to connect directly.</div>}
                         </div>}
                     </Tab>
                 </Tabs>

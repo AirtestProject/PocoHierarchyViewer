@@ -76,7 +76,7 @@ export class Unity3dInspectorView extends InspectorViewBase {
                     .catch(err => {})  // 没有这个方法就忽略
             })
             .catch(err => {
-                alert(err.message + '\nPlease check your poco-sdk status.\n(远程应用RPC调用失败，请检查SDK是否接入成功)')
+                alert(err.message + '\nPlease check your poco-sdk status.\n(The remote application RPC call failed, check the SDK for success)')
             })
             .then(() => {
                 return this.refreshScreen(width)

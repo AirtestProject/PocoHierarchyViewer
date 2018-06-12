@@ -10,12 +10,12 @@ class SecondaryConfirmModal extends React.Component {
             <Modal show={this.props.show} onHide={this.props.onCancel}>
                 <div style={{marginTop: '120px'}}>
                     <Modal.Header>
-                        <Modal.Title>{this.props.title || '二次确认'}</Modal.Title>
+                        <Modal.Title>{this.props.title || 'Secondary confirmation'}</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                         <p>{this.props.tips}</p>
-                        <a className='btn btn-warning' onClick={this.props.onConfirm}>{this.props.confirm || '确认'}</a> 
-                        <a className='btn btn-default' onClick={this.props.onCancel}>{this.props.cancel || '取消'}</a> 
+                        <a className='btn btn-warning' onClick={this.props.onConfirm}>{this.props.confirm || 'Confirm'}</a> 
+                        <a className='btn btn-default' onClick={this.props.onCancel}>{this.props.cancel || 'Cancel'}</a> 
                     </Modal.Body>
                 </div>
             </Modal>
