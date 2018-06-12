@@ -53,7 +53,7 @@ export class InspectorViewBase extends React.Component {
 
     render() {
         let customizedToolbarArea = <span style={{marginRight: '20px'}}>
-            <ToolBarButton icon='keyboard_backspace' hint='返回' onClick={this.handleBackToDeviceSelect} />
+            <ToolBarButton icon='keyboard_backspace' hint='return' onClick={this.handleBackToDeviceSelect} />
             {this.renderCustomizedToolbar()}
         </span>
 
