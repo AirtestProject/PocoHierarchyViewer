@@ -1,3 +1,4 @@
 deploy_server1:
     script: 
+        - npm install
         - sh ./build.sh
