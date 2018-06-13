@@ -1,9 +1,4 @@
 deploy_server1:
     script: 
-        - ssh ${CI_USERNAME}@${CI_HOST} "cd /home/${CI_PROJECT_NAME} &&
-            git checkout master &&
-            git pull origin master &&
-            composer install -n &&
-            bin/console doctrine:migrations:migrate --no-interaction "
         - cd ${CI_PROJECT_NAME}
         - sh ./build.sh
