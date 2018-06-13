@@ -1,4 +1,3 @@
 deploy_server1:
     script: 
-        - cd ${CI_PROJECT_NAME}
         - sh ./build.sh
