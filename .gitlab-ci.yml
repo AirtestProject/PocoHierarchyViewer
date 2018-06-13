@@ -1,4 +1,4 @@
 deploy_server1:
     script: 
-        - npm install
+        - sudo npm install
         - sh ./build.sh
