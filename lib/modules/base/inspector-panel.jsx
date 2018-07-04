@@ -487,7 +487,7 @@ class ElementPane extends MouseoverComponent {
         if (evt.originalEvent.repeat) {
             return
         }
-        if (!this.state.showFocusOffset && (evt.key === 'Control' || evt.key === 'Alt')) {
+        if (!this.state.showFocusOffset && evt.key === 'Alt') {
             this.setState({showFocusOffset: true})
         }
     }
@@ -495,7 +495,7 @@ class ElementPane extends MouseoverComponent {
         if (evt.originalEvent.repeat) {
             return
         }
-        if (this.state.showFocusOffset && (evt.key === 'Control' || evt.key === 'Alt')) {
+        if (this.state.showFocusOffset && evt.key === 'Alt') {
             this.setState({showFocusOffset: false})
         }
     }
@@ -642,7 +642,7 @@ export class InspectorPanel extends React.Component {
                 }
                 let {global, local} = node.payload.zOrders
                 let area = node.payload.size[0] * node.payload.size[1]
-                let depthLst = parentDepth.concat([global, 1 - area, local, childIndex])
+                let depthLst = parentDepth.concat([global, local, 1 - area, childIndex])
                 node.payload.depthLst = depthLst
             })
         }
