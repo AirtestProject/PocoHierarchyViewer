@@ -39,10 +39,15 @@ export class Unity3dInspectorView extends InspectorViewBase {
     }
 
     refreshScreen(width) {
-        return this.screen.getScreen(width).then(res => {
-            let [b64img, fmt] = res
-            let screenData = `data:image/${fmt};base64,${b64img}`
-            this.setState({screen: screenData})
+        return this.screen.getPortSize().then(res => {
+            let [screenWidth, screenHeight] = res
+            this.setState({screenWidth, screenHeight})
+        }).then(() => {
+            return this.screen.getScreen(width).then(res => {
+                let [b64img, fmt] = res
+                let screenData = `data:image/${fmt};base64,${b64img}`
+                this.setState({screen: screenData})
+            })
         })
     }
 
@@ -110,7 +115,8 @@ export class Unity3dInspectorView extends InspectorViewBase {
                 [dump: ${this.state.profileData.dump}ms]  
                 [dumpSerialize: ${this.state.profileData.dumpSerialize}ms]  
                 [screenshot: ${this.state.profileData.screenshot}ms]  
-                [sdk-version: ${this.state.sdkVersionCode}]`} 
+                [sdk-version: ${this.state.sdkVersionCode}]  
+                [resolution: ${this.state.screenWidth}x${this.state.screenHeight}]`} 
             </small>
         </span>
     }

@@ -41,6 +41,8 @@ const NodeType2IconName = {
     GameObject: ['home', ''],
     ImageView: ['mdi-image-image', 'lightpink'],
     Image: ['mdi-image-image', 'lightpink'],
+    Bitmap: ['mdi-image-image', 'lightpink'],
+    Shape: ['star_border', 'lightpink'],
     View: ['view_agenda', ''],
     Sprite: ['mdi-image-image', 'lightpink'],
     Text: ['mdi-content-text-format', 'white'],
